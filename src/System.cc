@@ -354,7 +354,7 @@ namespace ORB_SLAM3
         mTrackingState = mpTracker->mState;
         mTrackedMapPoints = mpTracker->mCurrentFrame.mvpMapPoints;
         mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;
-        std::cout<<"Pose in ORB-SLAM:"<<Tcw<<std::endl;
+        //std::cout<<"Pose in ORB-SLAM:"<<Tcw<<std::endl;
         return Tcw;
     }
 

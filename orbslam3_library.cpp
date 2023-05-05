@@ -525,7 +525,7 @@ bool performTracking()
 {
     if (input_mode == orbslam_input_mode::rgbd) {
         pose = SLAM->TrackRGBD(*imRGB,*imD,last_frame_timestamp.ToS());
-        std::cout<<"Pose in SLAMBench:"<<pose<<std::endl;
+        //std::cout<<"Pose in SLAMBench:"<<pose<<std::endl;
     } else if (input_mode == orbslam_input_mode::mono || input_mode == orbslam_input_mode::monoimu) {
         if (rgb_ready)
             pose = SLAM->TrackMonocular(*imRGB,last_frame_timestamp.ToS(), imupoints);
@@ -600,7 +600,8 @@ bool sb_update_frame (SLAMBenchLibraryHelper *slam_settings , slambench::io::SLA
 //  Continue sending in frames if not yet initialized or start frame not reached yet
     if((sensors_ready && !sb_get_initialized()) || frame_no < start_frame)
     {
-        cout<<"Perform tracking from sb_update_frame"<<std::endl;
+        //cout<<"Perform tracking from sb_update_frame"<<std::endl;
+        return sensors_ready;
         performTracking();
         return false;
     }
@@ -609,7 +610,7 @@ bool sb_update_frame (SLAMBenchLibraryHelper *slam_settings , slambench::io::SLA
 }
 
 bool sb_process_once (SLAMBenchLibraryHelper *slam_settings)  {
-    cout<<"Perform tracking from sb_process_once"<<std::endl;
+    //cout<<"Perform tracking from sb_process_once"<<std::endl;
     if(!performTracking())
         return false;
 
