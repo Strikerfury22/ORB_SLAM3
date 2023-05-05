@@ -602,8 +602,8 @@ bool sb_update_frame (SLAMBenchLibraryHelper *slam_settings , slambench::io::SLA
     {
         //cout<<"Perform tracking from sb_update_frame"<<std::endl;
         return sensors_ready;
-        performTracking();
-        return false;
+        //performTracking();
+        //return false;
     }
 
     return sensors_ready;
