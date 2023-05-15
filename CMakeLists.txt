@@ -30,6 +30,8 @@ endif()
 
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 
+set(OpenCV_DIR "${PROJECT_SOURCE_DIR}/Thirdparty/opencv/build_dir")
+
 find_package(OpenCV 4.4)
    if(NOT OpenCV_FOUND)
       message(FATAL_ERROR "OpenCV > 4.4 not found.")
@@ -119,8 +121,8 @@ target_link_libraries(${PROJECT_NAME}
 ${OpenCV_LIBS}
 ${EIGEN3_LIBS}
 ${Pangolin_LIBRARIES}
-${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
-${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
+${CMAKE_CURRENT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
+${CMAKE_CURRENT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
 -lboost_serialization
 -lcrypto
 )

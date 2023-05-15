@@ -28,6 +28,7 @@ set(SRCS_DUTILS
   DUtils/Random.cpp
   DUtils/Timestamp.cpp)
 
+set(OpenCV_DIR "${PROJECT_SOURCE_DIR}/../opencv/build_dir")
 
 find_package(OpenCV 4 QUIET)
 if(NOT OpenCV_FOUND)
