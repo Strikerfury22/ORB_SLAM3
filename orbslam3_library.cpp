@@ -25,9 +25,12 @@
 #if (CV_MAJOR_VERSION > 3)
 #include <opencv4/opencv2/core.hpp>
 #include <opencv4/opencv2/calib3d/calib3d_c.h>
+#include <opencv4/opencv2/core/eigen.hpp>
 #else
 #include <opencv2/core/core.hpp>
+#include <opencv2/core/eigen.hpp>
 #endif
+
 // access to slam objects
 static cv::Mat pose;
 static cv::Mat frameCV;
@@ -306,8 +309,11 @@ bool sb_init_slam_system(SLAMBenchLibraryHelper * slam_settings)  {
         SLAM = new ORB_SLAM3::System(vocabulary_file,settings_file,ORB_SLAM3::System::RGBD,false);
 
         if(settings_file.empty()) {
-            SLAM->mpTracker->ConfigureCamera(camera_parameters,cv::Mat(),  camera_distortion, camera_fps, DepthMapFactor, 40, depth_threshold);
-            SLAM->mpTracker->ConfigureAlgorithm(max_features, pyramid_levels, scale_factor, initial_fast_threshold, second_fast_threshold);
+            //TODO: Update to work with the new orbslam3 format (no Configure functions)
+            std::cerr << "Setting file is empty";
+            return false;
+            //SLAM->mpTracker->ConfigureCamera(camera_parameters,cv::Mat(),  camera_distortion, camera_fps, DepthMapFactor, 40, depth_threshold);
+            //SLAM->mpTracker->ConfigureAlgorithm(max_features, pyramid_levels, scale_factor, initial_fast_threshold, second_fast_threshold);
         }
 
     } else if (input_mode == orbslam_input_mode::mono || input_mode == orbslam_input_mode::monoimu) {
@@ -353,7 +359,11 @@ bool sb_init_slam_system(SLAMBenchLibraryHelper * slam_settings)  {
         }
 
         if(settings_file.empty()) {
-            SLAM->mpTracker->ConfigureCamera(camera_parameters, cv::Mat(), camera_distortion, camera_fps, 1, 40, depth_threshold);
+            //TODO: Update to work with the new orbslam3 format (no Configure functions)
+            std::cerr << "Setting file is empty";
+            return false;
+
+            /*SLAM->mpTracker->ConfigureCamera(camera_parameters, cv::Mat(), camera_distortion, camera_fps, 1, 40, depth_threshold);
             SLAM->mpTracker->ConfigureAlgorithm(max_features, pyramid_levels, scale_factor, initial_fast_threshold, second_fast_threshold);
             if(input_mode == orbslam_input_mode::monoimu)
             {
@@ -369,8 +379,7 @@ bool sb_init_slam_system(SLAMBenchLibraryHelper * slam_settings)  {
                                               IMU_sensor->AcceleratorNoiseDensity,
                                               IMU_sensor->GyroscopeBiasDiffusion,
                                               IMU_sensor->AcceleratorBiasDiffusion);
-            }
-
+            }*/
         }
     } else if (input_mode == orbslam_input_mode::stereo || input_mode == orbslam_input_mode::stereoimu) {
 
@@ -458,7 +467,11 @@ bool sb_init_slam_system(SLAMBenchLibraryHelper * slam_settings)  {
         }
 
         if(settings_file.empty()) {
-            SLAM->mpTracker->ConfigureCamera(K, cv::Mat(), DistCoef, camera_fps, 1, bf , depth_threshold);
+            //TODO: Update to work with the new orbslam3 format (no Configure functions)
+            std::cerr << "Setting file is empty";
+            return false;
+            
+            /*SLAM->mpTracker->ConfigureCamera(K, cv::Mat(), DistCoef, camera_fps, 1, bf , depth_threshold);
             SLAM->mpTracker->ConfigureAlgorithm(max_features,pyramid_levels,scale_factor,initial_fast_threshold,second_fast_threshold);
             if(input_mode == orbslam_input_mode::stereoimu)
             {
@@ -473,8 +486,7 @@ bool sb_init_slam_system(SLAMBenchLibraryHelper * slam_settings)  {
                                               IMU_sensor->AcceleratorNoiseDensity,
                                               IMU_sensor->GyroscopeBiasDiffusion,
                                               IMU_sensor->AcceleratorBiasDiffusion);
-            }
-
+            }*/
         }
         if(K_l.empty() || K_r.empty() || P_l.empty() || P_r.empty() || R_l.empty() || R_r.empty() || D_l.empty() || D_r.empty() ||
            rows_l==0 || rows_r==0 || cols_l==0 || cols_r==0)
@@ -499,7 +511,7 @@ bool sb_init_slam_system(SLAMBenchLibraryHelper * slam_settings)  {
         std::cout << "Invalid input mode '" <<   input_mode << "'" << std::endl;
         exit(1);
     }
-    SLAM->mpTracker->PrintConfig();
+    //SLAM->mpTracker->PrintConfig();
 
     pose_output = new slambench::outputs::Output("Pose", slambench::values::VT_POSE, true);
     slam_settings->GetOutputManager().RegisterOutput(pose_output);
@@ -523,23 +535,30 @@ bool depth_ready = false, rgb_ready = false, grey_one_ready = false, grey_two_re
 
 bool performTracking()
 {
+    Sophus::SE3f Tcw_SE3f;
+
     if (input_mode == orbslam_input_mode::rgbd) {
-        pose = SLAM->TrackRGBD(*imRGB,*imD,last_frame_timestamp.ToS());
+        Tcw_SE3f = SLAM->TrackRGBD(*imRGB,*imD,last_frame_timestamp.ToS());
         //std::cout<<"Pose in SLAMBench:"<<pose<<std::endl;
     } else if (input_mode == orbslam_input_mode::mono || input_mode == orbslam_input_mode::monoimu) {
         if (rgb_ready)
-            pose = SLAM->TrackMonocular(*imRGB,last_frame_timestamp.ToS(), imupoints);
+            Tcw_SE3f = SLAM->TrackMonocular(*imRGB,last_frame_timestamp.ToS(), imupoints);
         else if (grey_one_ready)
-            pose = SLAM->TrackMonocular(*img_one,last_frame_timestamp.ToS(), imupoints);
+            Tcw_SE3f = SLAM->TrackMonocular(*img_one,last_frame_timestamp.ToS(), imupoints);
     } else if(input_mode == orbslam_input_mode::stereo || input_mode == orbslam_input_mode::stereoimu) {
         cv::Mat imLeftRect, imRightRect;
         cv::remap(*img_one,imLeftRect,M1l,M2l,cv::INTER_LINEAR);
         cv::remap(*img_two,imRightRect,M1r,M2r,cv::INTER_LINEAR);
-        pose = SLAM->TrackStereo(imLeftRect,imRightRect,last_frame_timestamp.ToS(), imupoints);
+        Tcw_SE3f = SLAM->TrackStereo(imLeftRect,imRightRect,last_frame_timestamp.ToS(), imupoints);
     } else {
         std::cout << "Unsupported case." << std::endl;
         return false;
     }
+
+    Eigen::Matrix4f Tcw_Matrix = Tcw_SE3f.matrix();
+    cv::eigen2cv(Tcw_Matrix, pose);
+    std::cout<<"Pose in SLAMBench:"<<pose<<std::endl;
+
     frame_no++;
     imupoints.clear();
     imu_ready = false, depth_ready = false, rgb_ready = false, grey_one_ready = false, grey_two_ready = false;
@@ -553,7 +572,7 @@ bool sb_update_frame (SLAMBenchLibraryHelper *slam_settings , slambench::io::SLA
     if(s->FrameSensor->GetType() == slambench::io::GroundTruthSensor::kGroundTruthTrajectoryType and !sb_get_tracked()) {
         cv::Mat matrix(4,4,CV_32F);
         memcpy(matrix.data, s->GetData(), s->GetSize());
-        SLAM->mpTracker->mpMapDrawer->SetCurrentCameraPose(matrix);
+        //SLAM->mpTracker->mpMapDrawer->SetCurrentCameraPose(matrix);
         s->FreeData();
     }
         //  Prevent last_frame_timestamp to be updated with IMU sensor timestamp
@@ -614,7 +633,7 @@ bool sb_process_once (SLAMBenchLibraryHelper *slam_settings)  {
     if(!performTracking())
         return false;
 
-    SLAM->mpFrameDrawer->setState(SLAM->mpTracker->mLastProcessedState);
+    //SLAM->mpFrameDrawer->setState(SLAM->mpTracker->mLastProcessedState);
     if(!sb_get_tracked())
         std::cerr<<"Tracking failed!"<<std::endl;
 //        SLAM->Relocalize();
@@ -624,12 +643,13 @@ bool sb_process_once (SLAMBenchLibraryHelper *slam_settings)  {
 // Report last valid pose if tracking is lost
 Eigen::Matrix4f last_valid_pose=Eigen::Matrix4f::Identity();
 
+/* I hope that no one need this...
 void getAllPoses(std::vector<Eigen::Matrix4f> &sb_poses) {
     auto cv_poses = SLAM->getAllPoses();
     sb_poses.resize(cv_poses.size() - 2);
     for(size_t i = 0; i < sb_poses.size(); i++) //wtf
         copyPose<float>(sb_poses[i], reinterpret_cast<cv::Mat &>(cv_poses[i]), copyFrom::CV_TO_SB);
-}
+}*/
 
 bool sb_get_pose (Eigen::Matrix4f* mat)  {
     for(int j=0; j<4;j++) {
@@ -643,7 +663,8 @@ bool sb_get_pose (Eigen::Matrix4f* mat)  {
 bool sb_update_outputs(SLAMBenchLibraryHelper *lib, const slambench::TimeStamp *latest_output) {
     (void)lib;
     auto ts = *latest_output;
-
+    //TODO: Quick comment to allow compilation. Need rework ORBSLAM3 classes to work.
+    /*
     if(pose_output->IsActive()) {
         // Get the current pose as an eigen matrix
         Eigen::Matrix4f matrix;
@@ -689,7 +710,7 @@ bool sb_update_outputs(SLAMBenchLibraryHelper *lib, const slambench::TimeStamp *
         std::lock_guard<FastLock> lock (lib->GetOutputManager().GetLock());
         frame2_output->AddPoint(ts, new slambench::values::FrameValue(inputSize.x, inputSize.y, slambench::io::pixelformat::RGB_III_888,  (void*)(&frameCV.at<char>(0,0))));
     }
-
+    */
     return true;
 }
 
