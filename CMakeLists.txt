@@ -54,7 +54,7 @@ ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
 )
 
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
+#set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 
 add_library(${PROJECT_NAME} SHARED
 src/System.cc
@@ -118,6 +118,7 @@ include/Settings.h)
 
 add_subdirectory(Thirdparty/g2o)
 add_subdirectory(Thirdparty/DBoW2)
+#add_subdirectory(Thirdparty/Sophus)
 
 target_link_libraries(${PROJECT_NAME}
 ${OpenCV_LIBS}
@@ -172,9 +173,9 @@ endif()
 #         Examples/Stereo/stereo_kitti.cc)
 # target_link_libraries(stereo_kitti ${PROJECT_NAME})
 
-# add_executable(stereo_euroc
-#         Examples/Stereo/stereo_euroc.cc)
-# target_link_libraries(stereo_euroc ${PROJECT_NAME})
+add_executable(stereo_euroc
+        Examples/Stereo/stereo_euroc.cc)
+target_link_libraries(stereo_euroc ${PROJECT_NAME})
 
 # add_executable(stereo_tum_vi
 #         Examples/Stereo/stereo_tum_vi.cc)
