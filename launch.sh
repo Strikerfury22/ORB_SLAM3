@@ -1,32 +1,48 @@
 #!/bin/bash
 
-if [ $# -eq 0 ]; then
-    echo "No results subdirectory supplied"
+list=(MH01 MH02 MH03 MH04 MH05 V101 V102 V103 V201 V202 V203)
+
+if [ $# -ne 2 ]; then
+    echo "Need two arguments [results_dir n_runs]"
     exit 1
 fi
 
-base_path=$(pwd)
-res_path="Results/$1"
+RES_DIR=$1
+N_RUNS=$2
+ORIGINAL_PATH=$(pwd)
+DATASETS_PATH=/mnt/extra/jferrer/Datasets
 
-# mkdir -p $res_path
+for i in "${list[@]}"
+do
+    echo "*******************************************************"
+    echo COMPUTING DATASET $i
+    echo "*******************************************************"
+    echo ""
+    for n in $(seq $N_RUNS)
+    do
+        cd $ORIGINAL_PATH
+        echo -en "\tRun $n/$N_RUNS\t"
 
-# runs=($(find $res_path -type d -name "run_*"))
+        dest_path=$RES_DIR/$i/run_$n
+        mkdir -p $dest_path
+        cd $dest_path
+        T_START=$SECONDS
+        $ORIGINAL_PATH/Examples/Stereo/stereo_euroc $ORIGINAL_PATH/Vocabulary/ORBvoc.txt $ORIGINAL_PATH/Examples/Stereo/EuRoC.yaml $DATASETS_PATH/EuRoC/$i $ORIGINAL_PATH/Examples/Stereo/EuRoC_TimeStamps/$i.txt data_orbslam.log > orbslam3_new.log 2>&1
+        T_ELAPSED=$(($SECONDS-$T_START))
+        date -d@$T_ELAPSED -u +%M:%S
+    done
 
-# numbers=($(echo "${runs[@]}" | grep -oP '(?<=run_)\d+'))
-# largest=$(echo "${numbers[@]}" | tr ' ' '\n' | sort -nr | head -1)
-# next_number=$((largest+1))
 
-# run_path="$res_path/run_$next_number"
+    #echo $i
+    #ls ./evaluation/Ground_truth/EuRoC_left_cam/${i}_GT.txt
+    
+    
+    
+    echo ""
+done
 
-# mkdir $run_path
-# cd $run_path
 
-# $base_path/Examples/Stereo/stereo_euroc $base_path/Vocabulary/ORBvoc.txt $base_path/Examples/Stereo/EuRoC.yaml \
-# $base_path/Datasets/EuRoC/MH01 $base_path/Examples/Stereo/EuRoC_TimeStamps/MH01.txt dataset-MH01_stereo
-
-cd run_path
-
-python $base_path/evaluation/evaluate_ate_scale.py $base_path/evaluation/Ground_truth/EuRoC_left_cam/MH01_GT.txt \
-dataset-MH01_stereo_f.txt --plot MH01_stereo.pdf
+#python $base_path/evaluation/evaluate_ate_scale.py $base_path/evaluation/Ground_truth/EuRoC_left_cam/MH01_GT.txt \
+#dataset-MH01_stereo_f.txt --plot MH01_stereo.pdf
 
 

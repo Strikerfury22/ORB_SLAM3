@@ -33,6 +33,8 @@ void LoadImages(const string &strPathLeft, const string &strPathRight, const str
 
 int main(int argc, char **argv)
 {  
+    auto t = std::chrono::high_resolution_clock::now();
+    std::cout << "START\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
     if(argc < 5)
     {
         cerr << endl << "Usage: ./stereo_euroc path_to_vocabulary path_to_settings path_to_sequence_folder_1 path_to_times_file_1 (path_to_image_folder_2 path_to_times_file_2 ... path_to_image_folder_N path_to_times_file_N) (trajectory_file_name)" << endl;
@@ -93,7 +95,8 @@ int main(int argc, char **argv)
     cv::Mat imLeft, imRight;
     for (seq = 0; seq<num_seq; seq++)
     {
-
+        t = std::chrono::high_resolution_clock::now();
+        std::cout << "ALGO_START\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
         // Seq loop
         double t_resize = 0;
         double t_rect = 0;
@@ -102,6 +105,8 @@ int main(int argc, char **argv)
         int proccIm = 0;
         for(int ni=0; ni<nImages[seq]; ni++, proccIm++)
         {
+            t = std::chrono::high_resolution_clock::now();
+            std::cout << "FRAME\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
             // Read left and right images from file
             imLeft = cv::imread(vstrImageLeft[seq][ni],cv::IMREAD_UNCHANGED); //,cv::IMREAD_UNCHANGED);
             imRight = cv::imread(vstrImageRight[seq][ni],cv::IMREAD_UNCHANGED); //,cv::IMREAD_UNCHANGED);
@@ -122,6 +127,9 @@ int main(int argc, char **argv)
 
             double tframe = vTimestampsCam[seq][ni];
 
+            t = std::chrono::high_resolution_clock::now();
+            std::cout << "LOAD_IMAGE\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
+
     #ifdef COMPILEDWITHC11
             std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
     #else
@@ -141,20 +149,22 @@ int main(int argc, char **argv)
             t_track = t_resize + t_rect + std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
             SLAM.InsertTrackTime(t_track);
 #endif
+            t = std::chrono::high_resolution_clock::now();
+            std::cout << "END_TRACK\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
 
             double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
 
             vTimesTrack[ni]=ttrack;
 
             // Wait to load the next frame
-            double T=0;
+            /*double T=0;
             if(ni<nImages[seq]-1)
                 T = vTimestampsCam[seq][ni+1]-tframe;
             else if(ni>0)
                 T = tframe-vTimestampsCam[seq][ni-1];
 
             if(ttrack<T)
-                usleep((T-ttrack)*1e6); // 1e6
+                usleep((T-ttrack)*1e6); // 1e6*/
         }
 
         if(seq < num_seq - 1)
@@ -163,7 +173,8 @@ int main(int argc, char **argv)
 
             SLAM.ChangeDataset();
         }
-
+        t = std::chrono::high_resolution_clock::now();
+        std::cout << "ALGO_END\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
     }
     // Stop all threads
     SLAM.Shutdown();
@@ -182,6 +193,8 @@ int main(int argc, char **argv)
         SLAM.SaveKeyFrameTrajectoryEuRoC("KeyFrameTrajectory.txt");
     }
 
+    t = std::chrono::high_resolution_clock::now();
+    std::cout << "END\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
     return 0;
 }
 
