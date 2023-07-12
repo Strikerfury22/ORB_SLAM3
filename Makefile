@@ -18,3 +18,24 @@ opencv : ${THIRDPARTY_DIR}/opencv
 	+cd ${THIRDPARTY_DIR}/opencv/build_dir && make
 	mkdir -p $@
 	cd ${THIRDPARTY_DIR}/opencv/build_dir && make install
+
+./Datasets/EuRoCMAV/% :  # Example : $* = machine_hall/MH_01_easy/MH_01_easy
+	cd $(EXTRA)
+	mkdir -p $(@D)
+	#cd $(@D)  &&  ${WGET} "http://robotics.ethz.ch/~asl-datasets/ijrr_euroc_mav_dataset/$*.zip"
+
+EuRoCMAV :
+	### EuRoCMAV Machine Hall ###"
+	make ./Datasets/EuRoCMAV/machine_hall/MH_01_easy/MH_01_easy
+	make ./Datasets/EuRoCMAV/machine_hall/MH_02_easy/MH_02_easy
+	make ./Datasets/EuRoCMAV/machine_hall/MH_03_medium/MH_03_medium
+	make ./Datasets/EuRoCMAV/machine_hall/MH_04_difficult/MH_04_difficult
+	make ./Datasets/EuRoCMAV/machine_hall/MH_05_difficult/MH_05_difficult
+
+	### EuRoCMAV Vicon Room ###
+	make ./Datasets/EuRoCMAV/vicon_room1/V1_01_easy/V1_01_easy
+	make ./Datasets/EuRoCMAV/vicon_room1/V1_02_medium/V1_02_medium
+	make ./Datasets/EuRoCMAV/vicon_room1/V1_03_difficult/V1_03_difficult
+	make ./Datasets/EuRoCMAV/vicon_room2/V2_01_easy/V2_01_easy
+	make ./Datasets/EuRoCMAV/vicon_room2/V2_02_medium/V2_02_medium
+	make ./Datasets/EuRoCMAV/vicon_room2/V2_03_difficult/V2_03_difficult
