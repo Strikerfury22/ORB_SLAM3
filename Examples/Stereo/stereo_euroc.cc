@@ -38,8 +38,6 @@ int main(int argc, char **argv)
 {  
     auto t = std::chrono::high_resolution_clock::now();
     warmupTBB();
-    std::cout << "Test OK! :)\n";
-    return 1;
 
     std::cout << "START\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
     
