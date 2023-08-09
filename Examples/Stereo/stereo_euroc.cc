@@ -22,9 +22,12 @@
 #include<iomanip>
 #include<chrono>
 
+#include <tbb/tbb.h>
+
 #include<opencv2/core/core.hpp>
 
 #include<System.h>
+#include"tbb_utils.hpp"
 
 using namespace std;
 
@@ -34,7 +37,12 @@ void LoadImages(const string &strPathLeft, const string &strPathRight, const str
 int main(int argc, char **argv)
 {  
     auto t = std::chrono::high_resolution_clock::now();
+    warmupTBB();
+    std::cout << "Test OK! :)\n";
+    return 1;
+
     std::cout << "START\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
+    
     if(argc < 5)
     {
         cerr << endl << "Usage: ./stereo_euroc path_to_vocabulary path_to_settings path_to_sequence_folder_1 path_to_times_file_1 (path_to_image_folder_2 path_to_times_file_2 ... path_to_image_folder_N path_to_times_file_N) (trajectory_file_name)" << endl;
