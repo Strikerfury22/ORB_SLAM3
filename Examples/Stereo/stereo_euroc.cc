@@ -29,6 +29,8 @@
 #include<System.h>
 #include"tbb_utils.hpp"
 
+#define TOKENS_PIPELINE 10 //TODO: Move to an appropiate include file
+
 using namespace std;
 
 void LoadImages(const string &strPathLeft, const string &strPathRight, const string &strPathTimes,
@@ -109,69 +111,73 @@ int main(int argc, char **argv)
         double t_track = 0;
         int num_rect = 0;
         int proccIm = 0;
-        for(int ni=0; ni<nImages[seq]; ni++, proccIm++)
-        {
-            t = std::chrono::high_resolution_clock::now();
-            std::cout << "FRAME\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
+
+        int n_image = 0;
+
+        tbb::parallel_pipeline(TOKENS_PIPELINE,
+            //Dumy stage to stablish the order of the frames for the parallel stages
+            tbb::make_filter<void, int>(tbb::filter_mode::serial_in_order,
+            [&n_image, seq, &nImages](tbb::flow_control& fc) { 
+                if( n_image == nImages[seq] ) {
+                    fc.stop();
+                    return -1;
+                }
+
+                return n_image++;
+            }) & 
             // Read left and right images from file
-            imLeft = cv::imread(vstrImageLeft[seq][ni],cv::IMREAD_UNCHANGED); //,cv::IMREAD_UNCHANGED);
-            imRight = cv::imread(vstrImageRight[seq][ni],cv::IMREAD_UNCHANGED); //,cv::IMREAD_UNCHANGED);
+            tbb::make_filter<int, std::tuple<cv::Mat, cv::Mat, int>>(tbb::filter_mode::parallel,
+            [&vstrImageLeft, &vstrImageRight, seq](int n_image) {
+                cv::Mat imLeft = cv::imread(vstrImageLeft[seq][n_image],cv::IMREAD_UNCHANGED); //,cv::IMREAD_UNCHANGED);
+                cv::Mat imRight = cv::imread(vstrImageRight[seq][n_image],cv::IMREAD_UNCHANGED); //,cv::IMREAD_UNCHANGED);
 
-            if(imLeft.empty())
-            {
-                cerr << endl << "Failed to load image at: "
-                     << string(vstrImageLeft[seq][ni]) << endl;
-                return 1;
-            }
+                if(imLeft.empty())
+                {
+                    cerr << endl << "Failed to load image at: "
+                        << string(vstrImageLeft[seq][n_image]) << endl;
+                    exit(1);
+                }
 
-            if(imRight.empty())
-            {
-                cerr << endl << "Failed to load image at: "
-                     << string(vstrImageRight[seq][ni]) << endl;
-                return 1;
-            }
+                if(imRight.empty())
+                {
+                    cerr << endl << "Failed to load image at: "
+                        << string(vstrImageRight[seq][n_image]) << endl;
+                    exit(1);
+                }
 
-            double tframe = vTimestampsCam[seq][ni];
+                return std::make_tuple(imLeft, imRight, n_image);
+            }) &
+            // Last stage ORB
+            tbb::make_filter<std::tuple<cv::Mat, cv::Mat, int>, void>(tbb::filter_mode::serial_in_order,
+            [&SLAM, &vTimestampsCam, &vstrImageLeft, &vTimesTrack, seq](std::tuple<cv::Mat, cv::Mat, int> data) {
+                cv::Mat imLeft, imRight;
+                int n_image;
+                std::tie(imLeft, imRight, n_image) = data;
 
-            t = std::chrono::high_resolution_clock::now();
-            std::cout << "LOAD_IMAGE\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
+                double tframe = vTimestampsCam[seq][n_image];
 
-    #ifdef COMPILEDWITHC11
-            std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-    #else
-            std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
+                #ifdef COMPILEDWITHC11
+                std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+        #else
+                std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
+        #endif
+
+                // Pass the images to the SLAM system
+                SLAM.TrackStereo(imLeft,imRight,tframe, vector<ORB_SLAM3::IMU::Point>(), vstrImageLeft[seq][n_image]);
+                
+        #ifdef COMPILEDWITHC11
+                std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+        #else
+                std::chrono::monotonic_clock::time_point t2 = std::chrono::monotonic_clock::now();
+        #endif
+                double t_track = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
+    #ifdef REGISTER_TIMES
+                SLAM.InsertTrackTime(t_track);
     #endif
+                double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
 
-            // Pass the images to the SLAM system
-            SLAM.TrackStereo(imLeft,imRight,tframe, vector<ORB_SLAM3::IMU::Point>(), vstrImageLeft[seq][ni]);
-            
-    #ifdef COMPILEDWITHC11
-            std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-    #else
-            std::chrono::monotonic_clock::time_point t2 = std::chrono::monotonic_clock::now();
-    #endif
-
-#ifdef REGISTER_TIMES
-            t_track = t_resize + t_rect + std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
-            SLAM.InsertTrackTime(t_track);
-#endif
-            t = std::chrono::high_resolution_clock::now();
-            std::cout << "END_TRACK\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
-
-            double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
-
-            vTimesTrack[ni]=ttrack;
-
-            // Wait to load the next frame
-            /*double T=0;
-            if(ni<nImages[seq]-1)
-                T = vTimestampsCam[seq][ni+1]-tframe;
-            else if(ni>0)
-                T = tframe-vTimestampsCam[seq][ni-1];
-
-            if(ttrack<T)
-                usleep((T-ttrack)*1e6); // 1e6*/
-        }
+                vTimesTrack[n_image]=ttrack;
+            })); //END OF PIPELINE
 
         if(seq < num_seq - 1)
         {
