@@ -29,7 +29,11 @@
 #include<System.h>
 #include"tbb_utils.hpp"
 
-#define TOKENS_PIPELINE 10 //TODO: Move to an appropiate include file
+//TODO: Move to an appropiate include file
+#define TOKENS_PIPELINE 10 
+//The number of tokens divided by the number of stages is how many images will be on the fly because the last stage will always be sequential
+#define ROULETTE_SIZE 10
+
 
 using namespace std;
 
@@ -71,6 +75,10 @@ int main(int argc, char **argv)
     vstrImageRight.resize(num_seq);
     vTimestampsCam.resize(num_seq);
     nImages.resize(num_seq);
+
+    //Arrays for image (roulette)
+    cv::Mat imgsLeft[ROULETTE_SIZE];
+    cv::Mat imgsRight[ROULETTE_SIZE];
 
     int tot_images = 0;
     for (seq = 0; seq<num_seq; seq++)
@@ -118,6 +126,7 @@ int main(int argc, char **argv)
             //Dumy stage to stablish the order of the frames for the parallel stages
             tbb::make_filter<void, int>(tbb::filter_mode::serial_in_order,
             [&n_image, seq, &nImages](tbb::flow_control& fc) { 
+                std::cout << "FOO " << n_image << std::endl;
                 if( n_image == nImages[seq] ) {
                     fc.stop();
                     return -1;
@@ -126,8 +135,9 @@ int main(int argc, char **argv)
                 return n_image++;
             }) & 
             // Read left and right images from file
-            tbb::make_filter<int, std::tuple<cv::Mat, cv::Mat, int>>(tbb::filter_mode::parallel,
-            [&vstrImageLeft, &vstrImageRight, seq](int n_image) {
+            tbb::make_filter<int, int>(tbb::filter_mode::parallel,
+            [&vstrImageLeft, &vstrImageRight, &imgsLeft, &imgsRight, seq](int n_image) {
+                std::cout << "IMGREAD " << n_image << "/" << n_image % ROULETTE_SIZE << std::endl;
                 cv::Mat imLeft = cv::imread(vstrImageLeft[seq][n_image],cv::IMREAD_UNCHANGED); //,cv::IMREAD_UNCHANGED);
                 cv::Mat imRight = cv::imread(vstrImageRight[seq][n_image],cv::IMREAD_UNCHANGED); //,cv::IMREAD_UNCHANGED);
 
@@ -145,15 +155,15 @@ int main(int argc, char **argv)
                     exit(1);
                 }
 
-                return std::make_tuple(imLeft, imRight, n_image);
+                imgsLeft[n_image % ROULETTE_SIZE] = imLeft;
+                imgsRight[n_image % ROULETTE_SIZE] = imRight;
+
+                return n_image;
             }) &
             // Last stage ORB
-            tbb::make_filter<std::tuple<cv::Mat, cv::Mat, int>, void>(tbb::filter_mode::serial_in_order,
-            [&SLAM, &vTimestampsCam, &vstrImageLeft, &vTimesTrack, seq](std::tuple<cv::Mat, cv::Mat, int> data) {
-                cv::Mat imLeft, imRight;
-                int n_image;
-                std::tie(imLeft, imRight, n_image) = data;
-
+            tbb::make_filter<int, void>(tbb::filter_mode::serial_in_order,
+            [&SLAM, &vTimestampsCam, &vstrImageLeft, &vTimesTrack, &imgsLeft, &imgsRight, seq](int n_image) {
+                std::cout << "ORB " << n_image << "/" << n_image % ROULETTE_SIZE << std::endl;
                 double tframe = vTimestampsCam[seq][n_image];
 
                 #ifdef COMPILEDWITHC11
@@ -163,7 +173,8 @@ int main(int argc, char **argv)
         #endif
 
                 // Pass the images to the SLAM system
-                SLAM.TrackStereo(imLeft,imRight,tframe, vector<ORB_SLAM3::IMU::Point>(), vstrImageLeft[seq][n_image]);
+                SLAM.TrackStereo(imgsLeft[n_image % ROULETTE_SIZE], imgsRight[n_image % ROULETTE_SIZE],
+                    tframe, vector<ORB_SLAM3::IMU::Point>(), vstrImageLeft[seq][n_image]);
                 
         #ifdef COMPILEDWITHC11
                 std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
