@@ -27,9 +27,13 @@ do
         mkdir -p $dest_path
         cd $dest_path
         T_START=$SECONDS
-        $ORIGINAL_PATH/Examples/Stereo/stereo_euroc $ORIGINAL_PATH/Vocabulary/ORBvoc.txt $ORIGINAL_PATH/Examples/Stereo/EuRoC.yaml $DATASETS_PATH/EuRoC/$i $ORIGINAL_PATH/Examples/Stereo/EuRoC_TimeStamps/$i.txt data_orbslam.log > orbslam3_new.log 2>&1
+        $ORIGINAL_PATH/Examples/Stereo/stereo_euroc $ORIGINAL_PATH/Vocabulary/ORBvoc.txt $ORIGINAL_PATH/Examples/Stereo/EuRoC.yaml $DATASETS_PATH/EuRoC/$i $ORIGINAL_PATH/Examples/Stereo/EuRoC_TimeStamps/$i.txt data_orbslam > orbslam3_output.log 2>&1
         T_ELAPSED=$(($SECONDS-$T_START))
+
         date -d@$T_ELAPSED -u +%M:%S
+        python $ORIGINAL_PATH/evaluation/evaluate_ate_scale.py $ORIGINAL_PATH/evaluation/Ground_truth/EuRoC_left_cam/${i}_GT.txt ./data_orbslam_f.txt > evaluation.dat > evaluation.dat
+        echo -en "\tATE,scale,GT_ATE: "
+        cat ./evaluation.dat
     done
 
 
