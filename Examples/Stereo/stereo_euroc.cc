@@ -121,7 +121,7 @@ int main(int argc, char **argv)
         int num_rect = 0;
         int proccIm = 0;
 
-        nImages[seq] = 15; //TOP IMAGES FOR DEBUGGING
+        //nImages[seq] = 15; //TOP IMAGES FOR DEBUGGING
 
         int n_image = 0;
         PipelineTimer ptimer(nImages[seq], 2);
