@@ -86,6 +86,7 @@ src/GeometricTools.cc
 src/TwoViewReconstruction.cc
 src/Config.cc
 src/Settings.cc
+src/pipeline_timer.cpp
 include/System.h
 include/Tracking.h
 include/LocalMapping.h
@@ -116,7 +117,8 @@ include/TwoViewReconstruction.h
 include/SerializationUtils.h
 include/Config.h
 include/Settings.h
-include/tbb_utils.hpp)
+include/tbb_utils.hpp
+include/pipeline_timer.hpp)
 
 add_subdirectory(Thirdparty/g2o)
 

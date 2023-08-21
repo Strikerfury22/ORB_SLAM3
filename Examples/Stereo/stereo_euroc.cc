@@ -28,6 +28,7 @@
 
 #include<System.h>
 #include"tbb_utils.hpp"
+#include "pipeline_timer.hpp"
 
 //TODO: Move to an appropiate include file
 #define TOKENS_PIPELINE 10 
@@ -120,13 +121,15 @@ int main(int argc, char **argv)
         int num_rect = 0;
         int proccIm = 0;
 
+        nImages[seq] = 15; //TOP IMAGES FOR DEBUGGING
+
         int n_image = 0;
+        PipelineTimer ptimer(nImages[seq], 2);
 
         tbb::parallel_pipeline(TOKENS_PIPELINE,
-            //Dumy stage to stablish the order of the frames for the parallel stages
+            //Dummy stage to stablish the order of the frames for the parallel stages
             tbb::make_filter<void, int>(tbb::filter_mode::serial_in_order,
             [&n_image, seq, &nImages](tbb::flow_control& fc) { 
-                std::cout << "FOO " << n_image << std::endl;
                 if( n_image == nImages[seq] ) {
                     fc.stop();
                     return -1;
@@ -136,8 +139,9 @@ int main(int argc, char **argv)
             }) & 
             // Read left and right images from file
             tbb::make_filter<int, int>(tbb::filter_mode::parallel,
-            [&vstrImageLeft, &vstrImageRight, &imgsLeft, &imgsRight, seq](int n_image) {
-                std::cout << "IMGREAD " << n_image << "/" << n_image % ROULETTE_SIZE << std::endl;
+            [&vstrImageLeft, &vstrImageRight, &imgsLeft, &imgsRight, seq, &ptimer](int n_image) {
+                ptimer.start_pipeline(n_image, 0);
+                
                 cv::Mat imLeft = cv::imread(vstrImageLeft[seq][n_image],cv::IMREAD_UNCHANGED); //,cv::IMREAD_UNCHANGED);
                 cv::Mat imRight = cv::imread(vstrImageRight[seq][n_image],cv::IMREAD_UNCHANGED); //,cv::IMREAD_UNCHANGED);
 
@@ -158,12 +162,14 @@ int main(int argc, char **argv)
                 imgsLeft[n_image % ROULETTE_SIZE] = imLeft;
                 imgsRight[n_image % ROULETTE_SIZE] = imRight;
 
+                ptimer.end_pipeline(n_image, 0);
                 return n_image;
             }) &
             // Last stage ORB
             tbb::make_filter<int, void>(tbb::filter_mode::serial_in_order,
-            [&SLAM, &vTimestampsCam, &vstrImageLeft, &vTimesTrack, &imgsLeft, &imgsRight, seq](int n_image) {
-                std::cout << "ORB " << n_image << "/" << n_image % ROULETTE_SIZE << std::endl;
+            [&SLAM, &vTimestampsCam, &vstrImageLeft, &vTimesTrack, &imgsLeft, &imgsRight, seq, &ptimer](int n_image) {
+                ptimer.start_pipeline(n_image, 1);
+
                 double tframe = vTimestampsCam[seq][n_image];
 
                 #ifdef COMPILEDWITHC11
@@ -188,6 +194,8 @@ int main(int argc, char **argv)
                 double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
 
                 vTimesTrack[n_image]=ttrack;
+
+                ptimer.end_pipeline(n_image, 1);
             })); //END OF PIPELINE
 
         if(seq < num_seq - 1)
@@ -198,6 +206,7 @@ int main(int argc, char **argv)
         }
         t = std::chrono::high_resolution_clock::now();
         std::cout << "ALGO_END\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
+        ptimer.printStageTimesToFile("test.dat");
     }
     // Stop all threads
     SLAM.Shutdown();
