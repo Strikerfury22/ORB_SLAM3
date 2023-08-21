@@ -82,9 +82,16 @@ int main(int argc, char **argv)
         tot_images += nImages[seq];
     }
 
-    // Vector for tracking time statistics
+    // Vectors for tracking time statistics
     vector<float> vTimesTrack;
     vTimesTrack.resize(tot_images);
+
+    vector <std::chrono::nanoseconds> timer_frame_start;
+    vector <std::chrono::nanoseconds> timer_load_image;
+    vector <std::chrono::nanoseconds>  timer_frame_end;
+    timer_frame_start.resize(tot_images);
+    timer_load_image.resize(tot_images);
+    timer_frame_end.resize(tot_images);
 
     cout << endl << "-------" << endl;
     cout.precision(17);
@@ -106,7 +113,8 @@ int main(int argc, char **argv)
         for(int ni=0; ni<nImages[seq]; ni++, proccIm++)
         {
             t = std::chrono::high_resolution_clock::now();
-            std::cout << "FRAME\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
+            timer_frame_start[proccIm] = std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch());
+            
             // Read left and right images from file
             imLeft = cv::imread(vstrImageLeft[seq][ni],cv::IMREAD_UNCHANGED); //,cv::IMREAD_UNCHANGED);
             imRight = cv::imread(vstrImageRight[seq][ni],cv::IMREAD_UNCHANGED); //,cv::IMREAD_UNCHANGED);
@@ -128,7 +136,7 @@ int main(int argc, char **argv)
             double tframe = vTimestampsCam[seq][ni];
 
             t = std::chrono::high_resolution_clock::now();
-            std::cout << "LOAD_IMAGE\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
+            timer_load_image[proccIm] = std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch());
 
     #ifdef COMPILEDWITHC11
             std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
@@ -150,7 +158,7 @@ int main(int argc, char **argv)
             SLAM.InsertTrackTime(t_track);
 #endif
             t = std::chrono::high_resolution_clock::now();
-            std::cout << "END_TRACK\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
+            timer_frame_end[proccIm] = std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch());
 
             double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
 
@@ -179,6 +187,8 @@ int main(int argc, char **argv)
     // Stop all threads
     SLAM.Shutdown();
 
+    t = std::chrono::high_resolution_clock::now();
+
     // Save camera trajectory
     if (bFileName)
     {
@@ -193,7 +203,13 @@ int main(int argc, char **argv)
         SLAM.SaveKeyFrameTrajectoryEuRoC("KeyFrameTrajectory.txt");
     }
 
-    t = std::chrono::high_resolution_clock::now();
+    
+    for(int i=0; i<tot_images; i++){
+        std::cout << "FRAME\t" << timer_frame_start[i].count() << std::endl;
+        std::cout << "LOAD_IMAGE\t" << timer_load_image[i].count() << std::endl;
+        std::cout << "END_TRACK\t" << timer_frame_end[i].count() << std::endl;
+    }
+
     std::cout << "END\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
     return 0;
 }
