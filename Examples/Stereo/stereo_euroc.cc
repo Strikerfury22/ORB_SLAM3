@@ -210,6 +210,7 @@ int main(int argc, char **argv)
     }
     // Stop all threads
     SLAM.Shutdown();
+    t = std::chrono::high_resolution_clock::now();
 
     // Save camera trajectory
     if (bFileName)
@@ -224,8 +225,7 @@ int main(int argc, char **argv)
         SLAM.SaveTrajectoryEuRoC("CameraTrajectory.txt");
         SLAM.SaveKeyFrameTrajectoryEuRoC("KeyFrameTrajectory.txt");
     }
-
-    t = std::chrono::high_resolution_clock::now();
+    
     std::cout << "END\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
     return 0;
 }
