@@ -206,11 +206,13 @@ int main(int argc, char **argv)
         }
         t = std::chrono::high_resolution_clock::now();
         std::cout << "ALGO_END\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
-        ptimer.printStageTimesToFile("test.dat");
+        
     }
     // Stop all threads
     SLAM.Shutdown();
     t = std::chrono::high_resolution_clock::now();
+
+    ptimer.printStageTimesToFile(); //Print outside of sequence. If sequences are used, should use several ptimers on a vector.
 
     // Save camera trajectory
     if (bFileName)

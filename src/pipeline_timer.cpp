@@ -25,15 +25,15 @@ void PipelineTimer::printStageTimesToFile(std::string filename) {
     }
     std::ofstream outFile(filename);
 
-    outFile << "Stage\tItem\tTstart\tTend" << std::endl;
+    outFile << "Item\tStage\tTstart\tTend" << std::endl;
 
     if (outFile.is_open()) {
         for (int item = 0; item < _stage_times.size(); ++item) {
             for (int stage = 0; stage < _stage_times[item].size(); ++stage) {
                 outFile << item << "\t" << stage << "\t"
-                        << std::chrono::duration_cast<std::chrono::microseconds>(
+                        << std::chrono::duration_cast<std::chrono::nanoseconds>(
                                 _stage_times[item][stage].first - _ref_time).count() << "\t"
-                        << std::chrono::duration_cast<std::chrono::microseconds>(
+                        << std::chrono::duration_cast<std::chrono::nanoseconds>(
                                 _stage_times[item][stage].second - _ref_time).count() << std::endl;
             }
         }
