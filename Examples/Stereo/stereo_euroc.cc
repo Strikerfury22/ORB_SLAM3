@@ -80,6 +80,7 @@ int main(int argc, char **argv)
     //Arrays for image (roulette)
     cv::Mat imgsLeft[ROULETTE_SIZE];
     cv::Mat imgsRight[ROULETTE_SIZE];
+    ORB_SLAM3::Frame frames[ROULETTE_SIZE];
 
     int tot_images = 0;
     for (seq = 0; seq<num_seq; seq++)
@@ -108,7 +109,7 @@ int main(int argc, char **argv)
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     ORB_SLAM3::System SLAM(argv[1],argv[2],ORB_SLAM3::System::STEREO, false);
-    PipelineTimer ptimer(nImages[0], 2);
+    PipelineTimer ptimer(nImages[0], 3);
 
     cv::Mat imLeft, imRight;
     for (seq = 0; seq<num_seq; seq++)
@@ -140,8 +141,14 @@ int main(int argc, char **argv)
             }) & 
             // Read left and right images from file
             tbb::make_filter<int, int>(tbb::filter_mode::parallel,
-            [&vstrImageLeft, &vstrImageRight, &imgsLeft, &imgsRight, seq, &ptimer](int n_image) {
+            [&vstrImageLeft, &vstrImageRight, &imgsLeft, &imgsRight, seq, &ptimer, &vTimesTrack](int n_image) {
                 ptimer.start_pipeline(n_image, 0);
+
+            #ifdef COMPILEDWITHC11
+                std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+            #else
+                std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
+            #endif
                 
                 cv::Mat imLeft = cv::imread(vstrImageLeft[seq][n_image],cv::IMREAD_UNCHANGED); //,cv::IMREAD_UNCHANGED);
                 cv::Mat imRight = cv::imread(vstrImageRight[seq][n_image],cv::IMREAD_UNCHANGED); //,cv::IMREAD_UNCHANGED);
@@ -163,44 +170,71 @@ int main(int argc, char **argv)
                 imgsLeft[n_image % ROULETTE_SIZE] = imLeft;
                 imgsRight[n_image % ROULETTE_SIZE] = imRight;
 
+            #ifdef COMPILEDWITHC11
+                std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+            #else
+                std::chrono::monotonic_clock::time_point t2 = std::chrono::monotonic_clock::now();
+            #endif
+                double t_track = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
+                vTimesTrack[n_image] = t_track;
+
                 ptimer.end_pipeline(n_image, 0);
+                return n_image;
+            }) &
+            //Create Frame from image
+            tbb::make_filter<int, int>(tbb::filter_mode::parallel,
+            [&SLAM, &frames, &ptimer, &seq, &vTimestampsCam, &vstrImageLeft, &imgsLeft, &imgsRight, &vTimesTrack](int n_image) {
+                ptimer.start_pipeline(n_image, 1);
+
+            #ifdef COMPILEDWITHC11
+                std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+            #else
+                std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
+            #endif
+
+                frames[n_image % ROULETTE_SIZE] = SLAM.GenerateFrame(imgsLeft[n_image % ROULETTE_SIZE], 
+                    imgsRight[n_image % ROULETTE_SIZE], vTimestampsCam[seq][n_image], vector<ORB_SLAM3::IMU::Point>(), 
+                    vstrImageLeft[seq][n_image]);
+
+            #ifdef COMPILEDWITHC11
+                std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+            #else
+                std::chrono::monotonic_clock::time_point t2 = std::chrono::monotonic_clock::now();
+            #endif
+                double t_track = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
+                vTimesTrack[n_image] += t_track;
+                    
+                ptimer.end_pipeline(n_image, 1);
                 return n_image;
             }) &
             // Last stage ORB
             tbb::make_filter<int, void>(tbb::filter_mode::serial_in_order,
-            [&SLAM, &vTimestampsCam, &vstrImageLeft, &vTimesTrack, &imgsLeft, &imgsRight, seq, &ptimer](int n_image) {
-                ptimer.start_pipeline(n_image, 1);
+            [&SLAM, &vTimesTrack, &frames, seq, &ptimer, &vTimesTrack](int n_image) {
+                ptimer.start_pipeline(n_image, 2);
 
-                double tframe = vTimestampsCam[seq][n_image];
-
-                #ifdef COMPILEDWITHC11
+            #ifdef COMPILEDWITHC11
                 std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-        #else
+            #else
                 std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
-        #endif
+            #endif
 
-                // Pass the images to the SLAM system
-                //SLAM.TrackStereo(imgsLeft[n_image % ROULETTE_SIZE], imgsRight[n_image % ROULETTE_SIZE],
-                //    tframe, vector<ORB_SLAM3::IMU::Point>(), vstrImageLeft[seq][n_image]);
+                SLAM.TrackFrame(frames[n_image % ROULETTE_SIZE]);
 
-                ORB_SLAM3::Frame f = SLAM.GenerateFrame(imgsLeft[n_image % ROULETTE_SIZE], imgsRight[n_image % ROULETTE_SIZE], 
-                    tframe, vector<ORB_SLAM3::IMU::Point>(), vstrImageLeft[seq][n_image]);
-                SLAM.TrackFrame(f);
-                
-        #ifdef COMPILEDWITHC11
+            #ifdef COMPILEDWITHC11
                 std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-        #else
+            #else
                 std::chrono::monotonic_clock::time_point t2 = std::chrono::monotonic_clock::now();
-        #endif
+            #endif
                 double t_track = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
-    #ifdef REGISTER_TIMES
-                SLAM.InsertTrackTime(t_track);
-    #endif
-                double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+                vTimesTrack[n_image] += t_track;
+                double ttrack = vTimesTrack[n_image]; //Doesn't work????
+                    
+            #ifdef REGISTER_TIMES
+                    SLAM.InsertTrackTime(ttrack);
+            #endif
 
-                vTimesTrack[n_image]=ttrack;
 
-                ptimer.end_pipeline(n_image, 1);
+                ptimer.end_pipeline(n_image, 2);
             })); //END OF PIPELINE
 
         if(seq < num_seq - 1)

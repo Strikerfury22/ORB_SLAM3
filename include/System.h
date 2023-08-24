@@ -259,6 +259,8 @@ private:
     std::vector<cv::KeyPoint> mTrackedKeyPointsUn;
     std::mutex mMutexState;
 
+    std::mutex mMutexInsertRectTime;
+
     //
     string mStrLoadAtlasFromFile;
     string mStrSaveAtlasToFile;

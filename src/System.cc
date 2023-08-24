@@ -371,6 +371,7 @@ Frame System::GenerateFrame(const cv::Mat &imLeft, const cv::Mat &imRight, const
         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 
         double tr = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
+        unique_lock<mutex> lock(mMutexInsertRectTime); //Would be better if not mutex...
         InsertRectTime(tr);
     #endif
 
