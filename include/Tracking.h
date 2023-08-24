@@ -194,9 +194,6 @@ public:
 
 protected:
 
-    // Main tracking function. It is independent of the input sensor.
-    void Track();
-
     // Map initialization for stereo and RGB-D
     void StereoInitialization();
 
@@ -367,6 +364,11 @@ protected:
 #endif
 
 public:
+    // Main tracking function. It is independent of the input sensor.
+    void Track();
+
+    Frame BuildFrame(const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp, string filename);
+    
     cv::Mat mImRight;
 };
 

@@ -180,8 +180,12 @@ int main(int argc, char **argv)
         #endif
 
                 // Pass the images to the SLAM system
-                SLAM.TrackStereo(imgsLeft[n_image % ROULETTE_SIZE], imgsRight[n_image % ROULETTE_SIZE],
+                //SLAM.TrackStereo(imgsLeft[n_image % ROULETTE_SIZE], imgsRight[n_image % ROULETTE_SIZE],
+                //    tframe, vector<ORB_SLAM3::IMU::Point>(), vstrImageLeft[seq][n_image]);
+
+                ORB_SLAM3::Frame f = SLAM.GenerateFrame(imgsLeft[n_image % ROULETTE_SIZE], imgsRight[n_image % ROULETTE_SIZE], 
                     tframe, vector<ORB_SLAM3::IMU::Point>(), vstrImageLeft[seq][n_image]);
+                SLAM.TrackFrame(f);
                 
         #ifdef COMPILEDWITHC11
                 std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
