@@ -108,6 +108,7 @@ int main(int argc, char **argv)
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     ORB_SLAM3::System SLAM(argv[1],argv[2],ORB_SLAM3::System::STEREO, false);
+    PipelineTimer ptimer(nImages[0], 2);
 
     cv::Mat imLeft, imRight;
     for (seq = 0; seq<num_seq; seq++)
@@ -124,7 +125,7 @@ int main(int argc, char **argv)
         //nImages[seq] = 15; //TOP IMAGES FOR DEBUGGING
 
         int n_image = 0;
-        PipelineTimer ptimer(nImages[seq], 2);
+        
 
         tbb::parallel_pipeline(TOKENS_PIPELINE,
             //Dummy stage to stablish the order of the frames for the parallel stages
@@ -206,7 +207,6 @@ int main(int argc, char **argv)
         }
         t = std::chrono::high_resolution_clock::now();
         std::cout << "ALGO_END\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
-        
     }
     // Stop all threads
     SLAM.Shutdown();
