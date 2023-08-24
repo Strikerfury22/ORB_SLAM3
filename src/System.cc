@@ -249,6 +249,10 @@ Sophus::SE3f System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, 
         exit(-1);
     }
 
+    #ifdef REGISTER_TIMES
+            std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+    #endif
+
     cv::Mat imLeftToFeed, imRightToFeed;
     if(settings_ && settings_->needToRectify()){
         cv::Mat M1l = settings_->M1l();
@@ -267,6 +271,13 @@ Sophus::SE3f System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, 
         imLeftToFeed = imLeft.clone();
         imRightToFeed = imRight.clone();
     }
+
+    #ifdef REGISTER_TIMES
+        std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+
+        double tr = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
+        InsertRectTime(tr);
+    #endif
 
     // Check mode change
     {
