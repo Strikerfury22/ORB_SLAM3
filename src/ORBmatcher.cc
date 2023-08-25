@@ -252,6 +252,11 @@ namespace ORB_SLAM3
                 {
                     const unsigned int realIdxKF = vIndicesKF[iKF];
 
+                    //Sometimes SEFFAULT here. Just ignore the case if it will happen... It is not that common anyway.
+                    if(realIdxKF > vpMapPointsKF.size()){
+                        std::cout << "*************\nBIG WARNING!!!!\n*****************\n";
+                        continue;
+                    }
                     MapPoint* pMP = vpMapPointsKF[realIdxKF];
 
                     if(!pMP)
