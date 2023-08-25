@@ -376,7 +376,20 @@ Frame System::GenerateFrame(const cv::Mat &imLeft, const cv::Mat &imRight, const
             InsertRectTime(tr);
         }
     #endif
-    
+
+    if (mSensor == System::IMU_STEREO)
+        for(size_t i_imu = 0; i_imu < vImuMeas.size(); i_imu++)
+            mpTracker->GrabImuData(vImuMeas[i_imu]);
+
+
+    //******************* Old Track Stereo until here *******************//
+    //******************** Start new GrabImageStereo ********************//
+
+    return mpTracker->BuildFrame(imLeftToFeed,imRightToFeed,timestamp,filename, settings_);
+}
+
+Sophus::SE3f System::TrackFrame(Frame frame)
+{
     // Check mode change
     {
         unique_lock<mutex> lock(mMutexMode);
@@ -417,19 +430,6 @@ Frame System::GenerateFrame(const cv::Mat &imLeft, const cv::Mat &imRight, const
         }
     }
 
-    if (mSensor == System::IMU_STEREO)
-        for(size_t i_imu = 0; i_imu < vImuMeas.size(); i_imu++)
-            mpTracker->GrabImuData(vImuMeas[i_imu]);
-
-
-    //******************* Old Track Stereo until here *******************//
-    //******************** Start new GrabImageStereo ********************//
-
-    return mpTracker->BuildFrame(imLeftToFeed,imRightToFeed,timestamp,filename, settings_);
-}
-
-Sophus::SE3f System::TrackFrame(Frame frame)
-{
     //Times need to be pushed here because this function is sequential in the pipeline
     #ifdef REGISTER_TIMES
         mpTracker->vdORBExtract_ms.push_back(frame.mTimeORB_Ext);
