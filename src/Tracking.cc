@@ -1516,7 +1516,7 @@ Sophus::SE3f Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat 
     return mCurrentFrame.GetPose();
 }
 
-Frame Tracking::BuildFrame(const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp, string filename)
+Frame Tracking::BuildFrame(const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp, string filename, Settings* settings)
 {
     cv::Mat mImGray = imRectLeft;
     cv::Mat imGrayRight = imRectRight;
@@ -1552,14 +1552,26 @@ Frame Tracking::BuildFrame(const cv::Mat &imRectLeft,const cv::Mat &imRectRight,
 
     //cout << "Incoming frame creation" << endl;
     Frame retFrame;
+
+
+    //The ORBextractors need to be unique for each image. I don't have access to the values from this scope
+    //so I take them from the already initialized (and not used with pipelines).
+    int nFeatures = settings->nFeatures();
+    int nLevels = settings->nLevels();
+    int fIniThFAST = settings->initThFAST();
+    int fMinThFAST = settings->minThFAST();
+    float fScaleFactor = settings->scaleFactor();
+    ORBextractor* ORBextractorLeft = new ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
+    ORBextractor* ORBextractorRight = new ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
+
     if (mSensor == System::STEREO && !mpCamera2)
-        retFrame = Frame(mImGray,imGrayRight,timestamp,mpORBextractorLeft,mpORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera);
+        retFrame = Frame(mImGray,imGrayRight,timestamp,ORBextractorLeft,ORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera);
     else if(mSensor == System::STEREO && mpCamera2)
-        retFrame = Frame(mImGray,imGrayRight,timestamp,mpORBextractorLeft,mpORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera,mpCamera2,mTlr);
+        retFrame = Frame(mImGray,imGrayRight,timestamp,ORBextractorLeft,ORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera,mpCamera2,mTlr);
     else if(mSensor == System::IMU_STEREO && !mpCamera2)
-        retFrame = Frame(mImGray,imGrayRight,timestamp,mpORBextractorLeft,mpORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera,&mLastFrame,*mpImuCalib);
+        retFrame = Frame(mImGray,imGrayRight,timestamp,ORBextractorLeft,ORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera,&mLastFrame,*mpImuCalib);
     else if(mSensor == System::IMU_STEREO && mpCamera2)
-        retFrame = Frame(mImGray,imGrayRight,timestamp,mpORBextractorLeft,mpORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera,mpCamera2,mTlr,&mLastFrame,*mpImuCalib);
+        retFrame = Frame(mImGray,imGrayRight,timestamp,ORBextractorLeft,ORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera,mpCamera2,mTlr,&mLastFrame,*mpImuCalib);
 
     //cout << "Incoming frame ended" << endl;
 

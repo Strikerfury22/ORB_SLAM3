@@ -371,10 +371,12 @@ Frame System::GenerateFrame(const cv::Mat &imLeft, const cv::Mat &imRight, const
         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 
         double tr = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
-        unique_lock<mutex> lock(mMutexInsertRectTime); //Would be better if not mutex...
-        InsertRectTime(tr);
+        {
+            unique_lock<mutex> lock(mMutexInsertRectTime); //Would be better if not mutex...
+            InsertRectTime(tr);
+        }
     #endif
-
+    
     // Check mode change
     {
         unique_lock<mutex> lock(mMutexMode);
@@ -423,7 +425,7 @@ Frame System::GenerateFrame(const cv::Mat &imLeft, const cv::Mat &imRight, const
     //******************* Old Track Stereo until here *******************//
     //******************** Start new GrabImageStereo ********************//
 
-    return mpTracker->BuildFrame(imLeftToFeed,imRightToFeed,timestamp,filename);
+    return mpTracker->BuildFrame(imLeftToFeed,imRightToFeed,timestamp,filename, settings_);
 }
 
 Sophus::SE3f System::TrackFrame(Frame frame)
@@ -434,7 +436,7 @@ Sophus::SE3f System::TrackFrame(Frame frame)
         mpTracker->vdStereoMatch_ms.push_back(frame.mTimeStereoMatch);
     #endif
 
-    mpTracker->mCurrentFrame = frame;
+    mpTracker->mCurrentFrame = Frame(frame);
 
     mpTracker->Track();
 

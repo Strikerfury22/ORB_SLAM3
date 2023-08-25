@@ -367,7 +367,7 @@ public:
     // Main tracking function. It is independent of the input sensor.
     void Track();
 
-    Frame BuildFrame(const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp, string filename);
+    Frame BuildFrame(const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp, string filename, Settings* settings);
     
     cv::Mat mImRight;
 };
