@@ -141,7 +141,7 @@ int main(int argc, char **argv)
             }) & 
             // Read left and right images from file
             tbb::make_filter<int, int>(tbb::filter_mode::parallel,
-            [&vstrImageLeft, &vstrImageRight, &imgsLeft, &imgsRight, seq, &ptimer, &vTimesTrack](int n_image) {
+            [&SLAM, &vstrImageLeft, &vstrImageRight, &imgsLeft, &imgsRight, seq, &ptimer, &vTimesTrack](int n_image) {
                 ptimer.start_pipeline(n_image, 0);
 
             #ifdef COMPILEDWITHC11
@@ -175,8 +175,12 @@ int main(int argc, char **argv)
             #else
                 std::chrono::monotonic_clock::time_point t2 = std::chrono::monotonic_clock::now();
             #endif
-                double t_track = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
-                vTimesTrack[n_image] = t_track;
+                double t_load = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
+                vTimesTrack[n_image] = t_load;
+
+                #ifdef REGISTER_TIMES
+                    SLAM.InsertLoadTime(t_load);
+                #endif
 
                 ptimer.end_pipeline(n_image, 0);
                 return n_image;
@@ -201,8 +205,8 @@ int main(int argc, char **argv)
             #else
                 std::chrono::monotonic_clock::time_point t2 = std::chrono::monotonic_clock::now();
             #endif
-                double t_track = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
-                vTimesTrack[n_image] += t_track;
+                double t_extract = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
+                vTimesTrack[n_image] += t_extract;
                     
                 ptimer.end_pipeline(n_image, 1);
                 return n_image;

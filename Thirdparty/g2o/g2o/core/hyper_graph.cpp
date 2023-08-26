@@ -102,6 +102,7 @@ namespace g2o {
     if (! result.second)
       return false;
     for (std::vector<Vertex*>::iterator it = e->vertices().begin(); it != e->vertices().end(); ++it) {
+      //LEAK?? (it=0x0)
       Vertex* v = *it;
       v->edges().insert(e);
     }

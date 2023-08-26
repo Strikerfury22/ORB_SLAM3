@@ -181,6 +181,7 @@ public:
     void TrackStats2File();
     void PrintTimeStats();
 
+    vector<double> vdLoadFile_ms;
     vector<double> vdRectStereo_ms;
     vector<double> vdResizeImage_ms;
     vector<double> vdORBExtract_ms;
