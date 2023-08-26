@@ -31,9 +31,12 @@ do
         T_ELAPSED=$(($SECONDS-$T_START))
 
         date -d@$T_ELAPSED -u +%M:%S
-        python $ORIGINAL_PATH/evaluation/evaluate_ate_scale.py $ORIGINAL_PATH/evaluation/Ground_truth/EuRoC_left_cam/${i}_GT.txt ./data_orbslam_f.txt > evaluation.dat > evaluation.dat
-        echo -en "\tATE,scale,GT_ATE: "
-        cat ./evaluation.dat
+        echo -n "ATE,scale,GT_ATE: " >> SessionInfo.txt
+        python $ORIGINAL_PATH/evaluation/evaluate_ate_scale.py $ORIGINAL_PATH/evaluation/Ground_truth/EuRoC_left_cam/${i}_GT.txt ./data_orbslam_f.txt >> SessionInfo.txt
+        echo -n "Num Frames: " >> SessionInfo.txt
+        ls $DATASETS_PATH/EuRoC/${i}/mav0/cam0/data | wc -l >> SessionInfo.txt
+
+        cat ./SessionInfo.txt
     done
 
 
