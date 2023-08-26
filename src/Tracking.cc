@@ -226,7 +226,7 @@ void Tracking::TrackStats2File()
     f.open("TrackingTimeStats.txt");
     f << fixed << setprecision(6);
 
-    f << "#Image Rect[ms], Image Resize[ms], ORB ext[ms], Stereo match[ms], IMU preint[ms], Pose pred[ms], LM track[ms], KF dec[ms], Total[ms]" << endl;
+    f << "#Load File[ms], Image Rect[ms], Image Resize[ms], ORB ext[ms], Stereo match[ms], IMU preint[ms], Pose pred[ms], LM track[ms], KF dec[ms], Total[ms]" << endl;
 
     for(int i=0; i<vdTrackTotal_ms.size(); ++i)
     {
@@ -260,7 +260,7 @@ void Tracking::TrackStats2File()
             imu_preint = vdIMUInteg_ms[i];
         }
 
-        f << stereo_rect << "," << resize_image << "," << vdORBExtract_ms[i] << "," << stereo_match << "," << imu_preint << ","
+        f << load_file << "," << stereo_rect << "," << resize_image << "," << vdORBExtract_ms[i] << "," << stereo_match << "," << imu_preint << ","
           << vdPosePred_ms[i] <<  "," << vdLMTrack_ms[i] << "," << vdNewKF_ms[i] << "," << vdTrackTotal_ms[i] << endl;
     }
 
