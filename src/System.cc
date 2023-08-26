@@ -1395,6 +1395,11 @@ float System::GetImageScale()
 }
 
 #ifdef REGISTER_TIMES
+void System::InsertLoadTime(double& time)
+{
+    mpTracker->vdLoadFile_ms.push_back(time);
+}
+
 void System::InsertRectTime(double& time)
 {
     mpTracker->vdRectStereo_ms.push_back(time);

@@ -118,6 +118,7 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     }
 
 #ifdef REGISTER_TIMES
+    vdLoadFile_ms.clear();
     vdRectStereo_ms.clear();
     vdResizeImage_ms.clear();
     vdORBExtract_ms.clear();
@@ -229,6 +230,12 @@ void Tracking::TrackStats2File()
 
     for(int i=0; i<vdTrackTotal_ms.size(); ++i)
     {
+        double load_file = 0.0;
+        if(!vdLoadFile_ms.empty())
+        {
+            load_file = vdLoadFile_ms[i];
+        }
+
         double stereo_rect = 0.0;
         if(!vdRectStereo_ms.empty())
         {
@@ -280,6 +287,14 @@ void Tracking::PrintTimeStats()
     f << "---------------------------" << std::endl;
     f << "Tracking" << std::setprecision(5) << std::endl << std::endl;
     double average, deviation;
+    if(!vdLoadFile_ms.empty())
+    {
+        average = calcAverage(vdLoadFile_ms);
+        deviation = calcDeviation(vdLoadFile_ms, average);
+        std::cout << "Load Image: " << average << "$\\pm$" << deviation << std::endl;
+        f << "Load Image: " << average << "$\\pm$" << deviation << std::endl;
+    }
+
     if(!vdRectStereo_ms.empty())
     {
         average = calcAverage(vdRectStereo_ms);

@@ -135,8 +135,11 @@ int main(int argc, char **argv)
 
             double tframe = vTimestampsCam[seq][ni];
 
+            double t_load = 
+                std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(std::chrono::high_resolution_clock::now() - t).count();
             t = std::chrono::high_resolution_clock::now();
             timer_load_image[proccIm] = std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch());
+            SLAM.InsertLoadTime(t_load);
 
     #ifdef COMPILEDWITHC11
             std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
