@@ -157,7 +157,7 @@ int main(int argc, char **argv)
     #endif
 
 #ifdef REGISTER_TIMES
-            t_track = t_resize + t_rect + std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
+            t_track = t_load + t_resize + t_rect + std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
             SLAM.InsertTrackTime(t_track);
 #endif
             t = std::chrono::high_resolution_clock::now();
