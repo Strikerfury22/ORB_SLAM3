@@ -1531,7 +1531,7 @@ Sophus::SE3f Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat 
     return mCurrentFrame.GetPose();
 }
 
-Frame Tracking::BuildFrame(const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp, string filename, Settings* settings)
+Frame Tracking::BuildFrame(const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp, string filename, ORBextractor* ORBextractorLeft, ORBextractor* ORBextractorRight)
 {
     cv::Mat mImGray = imRectLeft;
     cv::Mat imGrayRight = imRectRight;
@@ -1568,17 +1568,6 @@ Frame Tracking::BuildFrame(const cv::Mat &imRectLeft,const cv::Mat &imRectRight,
     //cout << "Incoming frame creation" << endl;
     Frame retFrame;
 
-
-    //The ORBextractors need to be unique for each image. I don't have access to the values from this scope
-    //so I take them from the already initialized (and not used with pipelines).
-    int nFeatures = settings->nFeatures();
-    int nLevels = settings->nLevels();
-    int fIniThFAST = settings->initThFAST();
-    int fMinThFAST = settings->minThFAST();
-    float fScaleFactor = settings->scaleFactor();
-    ORBextractor* ORBextractorLeft = new ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
-    ORBextractor* ORBextractorRight = new ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
-
     if (mSensor == System::STEREO && !mpCamera2)
         retFrame = Frame(mImGray,imGrayRight,timestamp,ORBextractorLeft,ORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera);
     else if(mSensor == System::STEREO && mpCamera2)
@@ -1589,6 +1578,8 @@ Frame Tracking::BuildFrame(const cv::Mat &imRectLeft,const cv::Mat &imRectRight,
         retFrame = Frame(mImGray,imGrayRight,timestamp,ORBextractorLeft,ORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera,mpCamera2,mTlr,&mLastFrame,*mpImuCalib);
 
     //cout << "Incoming frame ended" << endl;
+
+    
 
     retFrame.mNameFile = filename;
     retFrame.mnDataset = mnNumDataset;

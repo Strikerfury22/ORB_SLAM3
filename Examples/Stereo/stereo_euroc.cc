@@ -81,6 +81,8 @@ int main(int argc, char **argv)
     cv::Mat imgsLeft[ROULETTE_SIZE];
     cv::Mat imgsRight[ROULETTE_SIZE];
     ORB_SLAM3::Frame frames[ROULETTE_SIZE];
+    ORB_SLAM3::ORBextractor *extractorsLeft[ROULETTE_SIZE];
+    ORB_SLAM3::ORBextractor *extractorsRight[ROULETTE_SIZE];
 
     int tot_images = 0;
     for (seq = 0; seq<num_seq; seq++)
@@ -109,6 +111,20 @@ int main(int argc, char **argv)
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     ORB_SLAM3::System SLAM(argv[1],argv[2],ORB_SLAM3::System::STEREO, false);
+
+    //Initialize ORBextractors
+    int nFeatures = SLAM.settings_->nFeatures();
+    int nLevels = SLAM.settings_->nLevels();
+    int fIniThFAST = SLAM.settings_->initThFAST();
+    int fMinThFAST = SLAM.settings_->minThFAST();
+    float fScaleFactor = SLAM.settings_->scaleFactor();
+    for(int i=0; i<ROULETTE_SIZE; i++){
+        extractorsLeft[i] = new ORB_SLAM3::ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
+        extractorsRight[i] = new ORB_SLAM3::ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
+    }
+
+
+
     PipelineTimer ptimer(nImages[0], 3);
 
     cv::Mat imLeft, imRight;
@@ -187,7 +203,7 @@ int main(int argc, char **argv)
             }) &
             //Create Frame from image
             tbb::make_filter<int, int>(tbb::filter_mode::parallel,
-            [&SLAM, &frames, &ptimer, &seq, &vTimestampsCam, &vstrImageLeft, &imgsLeft, &imgsRight, &vTimesTrack](int n_image) {
+            [&SLAM, &frames, &ptimer, &seq, &vTimestampsCam, &vstrImageLeft, &imgsLeft, &imgsRight, &vTimesTrack, &extractorsLeft, &extractorsRight](int n_image) {
                 ptimer.start_pipeline(n_image, 1);
 
             #ifdef COMPILEDWITHC11
@@ -197,8 +213,8 @@ int main(int argc, char **argv)
             #endif
 
                 frames[n_image % ROULETTE_SIZE] = SLAM.GenerateFrame(imgsLeft[n_image % ROULETTE_SIZE], 
-                    imgsRight[n_image % ROULETTE_SIZE], vTimestampsCam[seq][n_image], vector<ORB_SLAM3::IMU::Point>(), 
-                    vstrImageLeft[seq][n_image]);
+                    imgsRight[n_image % ROULETTE_SIZE], extractorsLeft[n_image % ROULETTE_SIZE], extractorsRight[n_image % ROULETTE_SIZE],
+                    vTimestampsCam[seq][n_image], vector<ORB_SLAM3::IMU::Point>(), vstrImageLeft[seq][n_image]);
 
             #ifdef COMPILEDWITHC11
                 std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
