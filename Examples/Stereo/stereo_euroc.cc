@@ -30,11 +30,7 @@
 #include"tbb_utils.hpp"
 #include "pipeline_timer.hpp"
 
-//TODO: Move to an appropiate include file
-#define TOKENS_PIPELINE 10 
-//The number of tokens divided by the number of stages is how many images will be on the fly because the last stage will always be sequential
-#define ROULETTE_SIZE 10
-
+#define ROULETTE_TOKENS_FACTOR 1
 
 using namespace std;
 
@@ -48,16 +44,18 @@ int main(int argc, char **argv)
 
     std::cout << "START\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
     
-    if(argc < 5)
+    if(argc < 6)
     {
-        cerr << endl << "Usage: ./stereo_euroc path_to_vocabulary path_to_settings path_to_sequence_folder_1 path_to_times_file_1 (path_to_image_folder_2 path_to_times_file_2 ... path_to_image_folder_N path_to_times_file_N) (trajectory_file_name)" << endl;
+        cerr << endl << "Usage: ./stereo_euroc tokens_pipeline path_to_vocabulary path_to_settings path_to_sequence_folder_1 path_to_times_file_1 (path_to_image_folder_2 path_to_times_file_2 ... path_to_image_folder_N path_to_times_file_N) (trajectory_file_name)" << endl;
 
         return 1;
     }
 
-    const int num_seq = (argc-3)/2;
+    const int num_tokens_pipeline = atoi(argv[1]);
+    const int roulette_size = ROULETTE_TOKENS_FACTOR * num_tokens_pipeline;
+    const int num_seq = (argc-4)/2;
     cout << "num_seq = " << num_seq << endl;
-    bool bFileName= (((argc-3) % 2) == 1);
+    bool bFileName= (((argc-4) % 2) == 1);
     string file_name;
     if (bFileName)
     {
@@ -78,19 +76,19 @@ int main(int argc, char **argv)
     nImages.resize(num_seq);
 
     //Arrays for image (roulette)
-    cv::Mat imgsLeft[ROULETTE_SIZE];
-    cv::Mat imgsRight[ROULETTE_SIZE];
-    ORB_SLAM3::Frame frames[ROULETTE_SIZE];
-    ORB_SLAM3::ORBextractor *extractorsLeft[ROULETTE_SIZE];
-    ORB_SLAM3::ORBextractor *extractorsRight[ROULETTE_SIZE];
+    cv::Mat *imgsLeft = new cv::Mat[roulette_size];
+    cv::Mat *imgsRight = new cv::Mat[roulette_size];
+    ORB_SLAM3::Frame *frames = new ORB_SLAM3::Frame[roulette_size];
+    ORB_SLAM3::ORBextractor **extractorsLeft = new ORB_SLAM3::ORBextractor*[roulette_size];
+    ORB_SLAM3::ORBextractor **extractorsRight = new ORB_SLAM3::ORBextractor*[roulette_size];
 
     int tot_images = 0;
     for (seq = 0; seq<num_seq; seq++)
     {
         cout << "Loading images for sequence " << seq << "...";
 
-        string pathSeq(argv[(2*seq) + 3]);
-        string pathTimeStamps(argv[(2*seq) + 4]);
+        string pathSeq(argv[(2*seq) + 4]);
+        string pathTimeStamps(argv[(2*seq) + 5]);
 
         string pathCam0 = pathSeq + "/mav0/cam0/data";
         string pathCam1 = pathSeq + "/mav0/cam1/data";
@@ -110,7 +108,7 @@ int main(int argc, char **argv)
     cout.precision(17);
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM3::System SLAM(argv[1],argv[2],ORB_SLAM3::System::STEREO, false);
+    ORB_SLAM3::System SLAM(argv[2],argv[3],ORB_SLAM3::System::STEREO, false);
 
     //Initialize ORBextractors
     int nFeatures = SLAM.settings_->nFeatures();
@@ -118,7 +116,7 @@ int main(int argc, char **argv)
     int fIniThFAST = SLAM.settings_->initThFAST();
     int fMinThFAST = SLAM.settings_->minThFAST();
     float fScaleFactor = SLAM.settings_->scaleFactor();
-    for(int i=0; i<ROULETTE_SIZE; i++){
+    for(int i=0; i<roulette_size; i++){
         extractorsLeft[i] = new ORB_SLAM3::ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
         extractorsRight[i] = new ORB_SLAM3::ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
     }
@@ -144,7 +142,7 @@ int main(int argc, char **argv)
         int n_image = 0;
         
 
-        tbb::parallel_pipeline(TOKENS_PIPELINE,
+        tbb::parallel_pipeline(num_tokens_pipeline,
             //Dummy stage to stablish the order of the frames for the parallel stages
             tbb::make_filter<void, int>(tbb::filter_mode::serial_in_order,
             [&n_image, seq, &nImages](tbb::flow_control& fc) { 
@@ -157,7 +155,7 @@ int main(int argc, char **argv)
             }) & 
             // Read left and right images from file
             tbb::make_filter<int, int>(tbb::filter_mode::parallel,
-            [&SLAM, &vstrImageLeft, &vstrImageRight, &imgsLeft, &imgsRight, seq, &ptimer, &vTimesTrack](int n_image) {
+            [&SLAM, &vstrImageLeft, &vstrImageRight, &imgsLeft, &imgsRight, seq, &ptimer, &vTimesTrack, &roulette_size](int n_image) {
                 ptimer.start_pipeline(n_image, 0);
 
             #ifdef COMPILEDWITHC11
@@ -183,8 +181,8 @@ int main(int argc, char **argv)
                     exit(1);
                 }
 
-                imgsLeft[n_image % ROULETTE_SIZE] = imLeft;
-                imgsRight[n_image % ROULETTE_SIZE] = imRight;
+                imgsLeft[n_image % roulette_size] = imLeft;
+                imgsRight[n_image % roulette_size] = imRight;
 
             #ifdef COMPILEDWITHC11
                 std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
@@ -203,7 +201,7 @@ int main(int argc, char **argv)
             }) &
             //Create Frame from image
             tbb::make_filter<int, int>(tbb::filter_mode::parallel,
-            [&SLAM, &frames, &ptimer, &seq, &vTimestampsCam, &vstrImageLeft, &imgsLeft, &imgsRight, &vTimesTrack, &extractorsLeft, &extractorsRight](int n_image) {
+            [&SLAM, &frames, &ptimer, &seq, &vTimestampsCam, &vstrImageLeft, &imgsLeft, &imgsRight, &vTimesTrack, &extractorsLeft, &extractorsRight, &roulette_size](int n_image) {
                 ptimer.start_pipeline(n_image, 1);
 
             #ifdef COMPILEDWITHC11
@@ -212,8 +210,8 @@ int main(int argc, char **argv)
                 std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
             #endif
 
-                frames[n_image % ROULETTE_SIZE] = SLAM.GenerateFrame(imgsLeft[n_image % ROULETTE_SIZE], 
-                    imgsRight[n_image % ROULETTE_SIZE], extractorsLeft[n_image % ROULETTE_SIZE], extractorsRight[n_image % ROULETTE_SIZE],
+                frames[n_image % roulette_size] = SLAM.GenerateFrame(imgsLeft[n_image % roulette_size], 
+                    imgsRight[n_image % roulette_size], extractorsLeft[n_image % roulette_size], extractorsRight[n_image % roulette_size],
                     vTimestampsCam[seq][n_image], vector<ORB_SLAM3::IMU::Point>(), vstrImageLeft[seq][n_image]);
 
             #ifdef COMPILEDWITHC11
@@ -229,7 +227,7 @@ int main(int argc, char **argv)
             }) &
             // Last stage ORB
             tbb::make_filter<int, void>(tbb::filter_mode::serial_in_order,
-            [&SLAM, &vTimesTrack, &frames, seq, &ptimer, &vTimesTrack](int n_image) {
+            [&SLAM, &vTimesTrack, &frames, seq, &ptimer, &vTimesTrack, &roulette_size](int n_image) {
                 ptimer.start_pipeline(n_image, 2);
 
             #ifdef COMPILEDWITHC11
@@ -238,7 +236,7 @@ int main(int argc, char **argv)
                 std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
             #endif
 
-                SLAM.TrackFrame(frames[n_image % ROULETTE_SIZE]);
+                SLAM.TrackFrame(frames[n_image % roulette_size]);
 
             #ifdef COMPILEDWITHC11
                 std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();

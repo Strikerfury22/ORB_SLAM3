@@ -2,13 +2,14 @@
 
 list=(MH01 MH02 MH03 MH04 MH05 V101 V102 V103 V201 V202 V203)
 
-if [ $# -ne 2 ]; then
-    echo "Need two arguments [results_dir n_runs]"
+if [ $# -lt 2 ] || [ $# -gt 3 ]; then
+    echo "Need two or three arguments [results_dir n_runs (number_tokens_pipeline)]"
     exit 1
 fi
 
 RES_DIR=$1
 N_RUNS=$2
+N_TOKENS_PIPELINE=$3
 ORIGINAL_PATH=$(pwd)
 DATASETS_PATH=/mnt/extra/jferrer/Datasets
 
@@ -35,7 +36,11 @@ while $cont; do #Continuosly check until all datasets are correct
                 mkdir -p $dest_path
                 cd $dest_path
                 T_START=$SECONDS
-                $ORIGINAL_PATH/Examples/Stereo/stereo_euroc $ORIGINAL_PATH/Vocabulary/ORBvoc.txt $ORIGINAL_PATH/Examples/Stereo/EuRoC.yaml $DATASETS_PATH/EuRoC/$i $ORIGINAL_PATH/Examples/Stereo/EuRoC_TimeStamps/$i.txt data_orbslam > orbslam3_output.log 2>&1
+                if [ -z "$N_TOKENS_PIPELINE" ]; then #Not provided
+                    $ORIGINAL_PATH/Examples/Stereo/stereo_euroc $ORIGINAL_PATH/Vocabulary/ORBvoc.txt $ORIGINAL_PATH/Examples/Stereo/EuRoC.yaml $DATASETS_PATH/EuRoC/$i $ORIGINAL_PATH/Examples/Stereo/EuRoC_TimeStamps/$i.txt data_orbslam > orbslam3_output.log 2>&1
+                else #Provided
+                    $ORIGINAL_PATH/Examples/Stereo/stereo_euroc $N_TOKENS_PIPELINE $ORIGINAL_PATH/Vocabulary/ORBvoc.txt $ORIGINAL_PATH/Examples/Stereo/EuRoC.yaml $DATASETS_PATH/EuRoC/$i $ORIGINAL_PATH/Examples/Stereo/EuRoC_TimeStamps/$i.txt data_orbslam > orbslam3_output.log 2>&1
+                fi
                 T_ELAPSED=$(($SECONDS-$T_START))
 
                 date -d@$T_ELAPSED -u +%M:%S
