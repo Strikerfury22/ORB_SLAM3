@@ -388,7 +388,7 @@ Frame System::GenerateFrame(const cv::Mat &imLeft, const cv::Mat &imRight, ORBex
     return mpTracker->BuildFrame(imLeftToFeed,imRightToFeed,timestamp,filename,ORBextractorLeft,ORBextractorRight);
 }
 
-Sophus::SE3f System::TrackFrame(Frame frame)
+Sophus::SE3f System::TrackFrame(Frame& frame)
 {
     // Check mode change
     {
