@@ -336,7 +336,7 @@ Sophus::SE3f System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, 
     return Tcw;
 }
 
-Frame System::GenerateFrame(const cv::Mat &imLeft, const cv::Mat &imRight, ORBextractor* ORBextractorLeft, ORBextractor* ORBextractorRight, const double &timestamp, const vector<IMU::Point>& vImuMeas, string filename)
+Frame System::GenerateFrame(const int n_image, const cv::Mat &imLeft, const cv::Mat &imRight, ORBextractor* ORBextractorLeft, ORBextractor* ORBextractorRight, const double &timestamp, const vector<IMU::Point>& vImuMeas, string filename)
 {
     if(mSensor!=STEREO && mSensor!=IMU_STEREO)
     {
@@ -385,7 +385,7 @@ Frame System::GenerateFrame(const cv::Mat &imLeft, const cv::Mat &imRight, ORBex
     //******************* Old Track Stereo until here *******************//
     //******************** Start new GrabImageStereo ********************//
 
-    return mpTracker->BuildFrame(imLeftToFeed,imRightToFeed,timestamp,filename,ORBextractorLeft,ORBextractorRight);
+    return mpTracker->BuildFrame(n_image, imLeftToFeed,imRightToFeed,timestamp,filename,ORBextractorLeft,ORBextractorRight);
 }
 
 Sophus::SE3f System::TrackFrame(Frame& frame)

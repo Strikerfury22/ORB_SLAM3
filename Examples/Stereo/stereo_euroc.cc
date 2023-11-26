@@ -212,7 +212,7 @@ int main(int argc, char **argv)
                 std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
             #endif
 
-                frames[n_image % roulette_size] = SLAM.GenerateFrame(imgsLeft[n_image % roulette_size], 
+                frames[n_image % roulette_size] = SLAM.GenerateFrame(n_image, imgsLeft[n_image % roulette_size], 
                     imgsRight[n_image % roulette_size], extractorsLeft[n_image % roulette_size], extractorsRight[n_image % roulette_size],
                     vTimestampsCam[seq][n_image], vector<ORB_SLAM3::IMU::Point>(), vstrImageLeft[seq][n_image]);
 

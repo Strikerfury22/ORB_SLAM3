@@ -110,7 +110,7 @@ public:
     Sophus::SE3f TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timestamp, const vector<IMU::Point>& vImuMeas = vector<IMU::Point>(), string filename="");
 
     //Functions that sub-divide TrackStereo into two tasks for pipelining
-    Frame GenerateFrame(const cv::Mat &imLeft, const cv::Mat &imRight, ORBextractor* ORBextractorLeft, ORBextractor* ORBextractorRight, const double &timestamp, const vector<IMU::Point>& vImuMeas = vector<IMU::Point>(), string filename="");
+    Frame GenerateFrame(const int n_image, const cv::Mat &imLeft, const cv::Mat &imRight, ORBextractor* ORBextractorLeft, ORBextractor* ORBextractorRight, const double &timestamp, const vector<IMU::Point>& vImuMeas = vector<IMU::Point>(), string filename="");
     Sophus::SE3f TrackFrame(Frame& frame);
 
     // Process the given rgbd frame. Depthmap must be registered to the RGB frame.

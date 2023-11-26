@@ -369,7 +369,7 @@ public:
     // Main tracking function. It is independent of the input sensor.
     void Track();
 
-    Frame BuildFrame(const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp, string filename, ORBextractor* ORBextractorLeft, ORBextractor* ORBextractorRight);
+    Frame BuildFrame(const int n_image, const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp, string filename, ORBextractor* ORBextractorLeft, ORBextractor* ORBextractorRight);
     
     cv::Mat mImRight;
 };

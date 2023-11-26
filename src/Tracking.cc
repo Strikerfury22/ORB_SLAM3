@@ -1506,11 +1506,15 @@ Sophus::SE3f Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat 
     //cout << "Incoming frame creation" << endl;
 
     if (mSensor == System::STEREO && !mpCamera2)
-        mCurrentFrame = Frame(mImGray,imGrayRight,timestamp,mpORBextractorLeft,mpORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera);
+        {std::cout << "GRAB STEREO NOT IMPLEMENTED\n";
+        mCurrentFrame = Frame();}
+        //mCurrentFrame = Frame(mImGray,imGrayRight,timestamp,mpORBextractorLeft,mpORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera);
     else if(mSensor == System::STEREO && mpCamera2)
         mCurrentFrame = Frame(mImGray,imGrayRight,timestamp,mpORBextractorLeft,mpORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera,mpCamera2,mTlr);
     else if(mSensor == System::IMU_STEREO && !mpCamera2)
-        mCurrentFrame = Frame(mImGray,imGrayRight,timestamp,mpORBextractorLeft,mpORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera,&mLastFrame,*mpImuCalib);
+        {std::cout << "FRAB IMU_STEREO NOT IMPLEMENTED\n";
+        mCurrentFrame = Frame();}
+        //mCurrentFrame = Frame(mImGray,imGrayRight,timestamp,mpORBextractorLeft,mpORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera,&mLastFrame,*mpImuCalib);
     else if(mSensor == System::IMU_STEREO && mpCamera2)
         mCurrentFrame = Frame(mImGray,imGrayRight,timestamp,mpORBextractorLeft,mpORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera,mpCamera2,mTlr,&mLastFrame,*mpImuCalib);
 
@@ -1531,7 +1535,7 @@ Sophus::SE3f Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat 
     return mCurrentFrame.GetPose();
 }
 
-Frame Tracking::BuildFrame(const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp, string filename, ORBextractor* ORBextractorLeft, ORBextractor* ORBextractorRight)
+Frame Tracking::BuildFrame(const int n_image, const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp, string filename, ORBextractor* ORBextractorLeft, ORBextractor* ORBextractorRight)
 {
     cv::Mat mImGray = imRectLeft;
     cv::Mat imGrayRight = imRectRight;
@@ -1569,11 +1573,13 @@ Frame Tracking::BuildFrame(const cv::Mat &imRectLeft,const cv::Mat &imRectRight,
     Frame retFrame;
 
     if (mSensor == System::STEREO && !mpCamera2)
-        retFrame = Frame(mImGray,imGrayRight,timestamp,ORBextractorLeft,ORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera);
+        retFrame = Frame(n_image, mImGray,imGrayRight,timestamp,ORBextractorLeft,ORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera);
     else if(mSensor == System::STEREO && mpCamera2)
         retFrame = Frame(mImGray,imGrayRight,timestamp,ORBextractorLeft,ORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera,mpCamera2,mTlr);
     else if(mSensor == System::IMU_STEREO && !mpCamera2)
-        retFrame = Frame(mImGray,imGrayRight,timestamp,ORBextractorLeft,ORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera,&mLastFrame,*mpImuCalib);
+        {std::cout << "IMU_STEREO NOT IMPLEMENTED\n";
+        retFrame = Frame();}
+        //retFrame = Frame(mImGray,imGrayRight,timestamp,ORBextractorLeft,ORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera,&mLastFrame,*mpImuCalib);
     else if(mSensor == System::IMU_STEREO && mpCamera2)
         retFrame = Frame(mImGray,imGrayRight,timestamp,ORBextractorLeft,ORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera,mpCamera2,mTlr,&mLastFrame,*mpImuCalib);
 
@@ -1863,6 +1869,8 @@ void Tracking::ResetFrameIMU()
 
 void Tracking::Track()
 {
+    cout << mCurrentFrame.mTimeStamp << ", " << mLastFrame.mTimeStamp << endl;
+    cout << "id last: " << mLastFrame.mnId << "    id curr: " << mCurrentFrame.mnId << endl;
     if (bStepByStep)
     {
         std::cout << "Tracking: Waiting to the next step" << std::endl;
