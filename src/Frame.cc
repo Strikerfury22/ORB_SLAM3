@@ -120,15 +120,15 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
     std::chrono::steady_clock::time_point time_StartExtORB = std::chrono::steady_clock::now();
 #endif
     
-    // tbb::parallel_invoke(
-    //     [this, &imLeft]() {Frame::ExtractORB(0, imLeft, 0, 0);},
-    //     [this, &imRight]() {Frame::ExtractORB(1, imRight, 0, 0);}
-    // );
+    tbb::parallel_invoke(
+        [this, &imLeft]() {Frame::ExtractORB(0, imLeft, 0, 0);},
+        [this, &imRight]() {Frame::ExtractORB(1, imRight, 0, 0);}
+    );
 
-    thread threadLeft(&Frame::ExtractORB,this,0,imLeft,0,0);
-    thread threadRight(&Frame::ExtractORB,this,1,imRight,0,0);
-    threadLeft.join();
-    threadRight.join();
+    // thread threadLeft(&Frame::ExtractORB,this,0,imLeft,0,0);
+    // thread threadRight(&Frame::ExtractORB,this,1,imRight,0,0);
+    // threadLeft.join();
+    // threadRight.join();
 
 #ifdef REGISTER_TIMES
     std::chrono::steady_clock::time_point time_EndExtORB = std::chrono::steady_clock::now();
@@ -139,18 +139,14 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
     N = mvKeys.size();
     if(mvKeys.empty())
         return;
-
-    UndistortKeyPoints();
-
 #ifdef REGISTER_TIMES
     std::chrono::steady_clock::time_point time_StartStereoMatches = std::chrono::steady_clock::now();
 #endif
-    ComputeStereoMatches();
-#ifdef REGISTER_TIMES
-    std::chrono::steady_clock::time_point time_EndStereoMatches = std::chrono::steady_clock::now();
+    UndistortKeyPoints();
 
-    mTimeStereoMatch = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndStereoMatches - time_StartStereoMatches).count();
-#endif
+
+    ComputeStereoMatches();
+
 
     mvpMapPoints = vector<MapPoint*>(N,static_cast<MapPoint*>(NULL));
     mvbOutlier = vector<bool>(N,false);
@@ -202,6 +198,11 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
     monoRight = -1;
 
     AssignFeaturesToGrid();
+    #ifdef REGISTER_TIMES
+    std::chrono::steady_clock::time_point time_EndStereoMatches = std::chrono::steady_clock::now();
+
+    mTimeStereoMatch = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndStereoMatches - time_StartStereoMatches).count();
+#endif
 }
 
 Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, GeometricCamera* pCamera,Frame* pPrevF, const IMU::Calib &ImuCalib)

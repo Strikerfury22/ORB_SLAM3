@@ -390,6 +390,9 @@ Frame System::GenerateFrame(const cv::Mat &imLeft, const cv::Mat &imRight, ORBex
 
 Sophus::SE3f System::TrackFrame(Frame& frame)
 {
+    #ifdef REGISTER_TIMES
+        mpTracker->start_tracking = std::chrono::steady_clock::now();
+    #endif
     // Check mode change
     {
         unique_lock<mutex> lock(mMutexMode);

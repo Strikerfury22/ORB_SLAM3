@@ -186,11 +186,12 @@ public:
     vector<double> vdResizeImage_ms;
     vector<double> vdORBExtract_ms;
     vector<double> vdStereoMatch_ms;
-    vector<double> vdIMUInteg_ms;
+    vector<double> vdInitTracking_ms;
     vector<double> vdPosePred_ms;
     vector<double> vdLMTrack_ms;
     vector<double> vdNewKF_ms;
     vector<double> vdTrackTotal_ms;
+    std::chrono::steady_clock::time_point start_tracking;
 #endif
 
 protected:

@@ -81,7 +81,9 @@ int main(int argc, char **argv)
     ORB_SLAM3::Frame *frames = new ORB_SLAM3::Frame[roulette_size];
     ORB_SLAM3::ORBextractor **extractorsLeft = new ORB_SLAM3::ORBextractor*[roulette_size];
     ORB_SLAM3::ORBextractor **extractorsRight = new ORB_SLAM3::ORBextractor*[roulette_size];
-
+    #ifdef REGISTER_TIMES
+        double *times_load = new double[roulette_size]; //I need to keep it here to insert it in the sequential Track stage so they are in order
+    #endif
     int tot_images = 0;
     for (seq = 0; seq<num_seq; seq++)
     {
@@ -155,7 +157,7 @@ int main(int argc, char **argv)
             }) & 
             // Read left and right images from file
             tbb::make_filter<int, int>(tbb::filter_mode::parallel,
-            [&SLAM, &vstrImageLeft, &vstrImageRight, &imgsLeft, &imgsRight, seq, &ptimer, &vTimesTrack, &roulette_size](int n_image) {
+            [&SLAM, &vstrImageLeft, &vstrImageRight, &imgsLeft, &imgsRight, seq, &ptimer, &vTimesTrack, &times_load, &roulette_size](int n_image) {
                 ptimer.start_pipeline(n_image, 0);
 
             #ifdef COMPILEDWITHC11
@@ -193,7 +195,7 @@ int main(int argc, char **argv)
                 vTimesTrack[n_image] = t_load;
 
                 #ifdef REGISTER_TIMES
-                    SLAM.InsertLoadTime(t_load);
+                    times_load[n_image % roulette_size] = t_load;
                 #endif
 
                 ptimer.end_pipeline(n_image, 0);
@@ -227,7 +229,7 @@ int main(int argc, char **argv)
             }) &
             // Last stage ORB
             tbb::make_filter<int, void>(tbb::filter_mode::serial_in_order,
-            [&SLAM, &vTimesTrack, &frames, seq, &ptimer, &vTimesTrack, &roulette_size](int n_image) {
+            [&SLAM, &vTimesTrack, &frames, seq, &ptimer, &vTimesTrack, &times_load, &roulette_size](int n_image) {
                 ptimer.start_pipeline(n_image, 2);
 
             #ifdef COMPILEDWITHC11
@@ -248,6 +250,7 @@ int main(int argc, char **argv)
                 double ttrack = vTimesTrack[n_image]; //Doesn't work????
                     
             #ifdef REGISTER_TIMES
+                    SLAM.InsertLoadTime(times_load[n_image % roulette_size]);
                     SLAM.InsertTrackTime(ttrack);
             #endif
 
