@@ -1869,8 +1869,6 @@ void Tracking::ResetFrameIMU()
 
 void Tracking::Track()
 {
-    cout << mCurrentFrame.mTimeStamp << ", " << mLastFrame.mTimeStamp << endl;
-    cout << "id last: " << mLastFrame.mnId << "    id curr: " << mCurrentFrame.mnId << endl;
     if (bStepByStep)
     {
         std::cout << "Tracking: Waiting to the next step" << std::endl;

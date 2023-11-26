@@ -228,7 +228,6 @@ int main(int argc, char **argv)
 
                 SLAM.TrackFrame(frames[n_image % roulette_size]);
 
-                std::cout << n_image << "\t" << n_image % roulette_size << "\n";
                 std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 
                 double t_track = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
