@@ -303,6 +303,7 @@ public:
 #ifdef REGISTER_TIMES
     double mTimeORB_Ext;
     double mTimeStereoMatch;
+    double mTimeRectify;
 #endif
 
 private:

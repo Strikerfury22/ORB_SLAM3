@@ -1535,7 +1535,7 @@ Sophus::SE3f Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat 
     return mCurrentFrame.GetPose();
 }
 
-Frame Tracking::BuildFrame(const int n_image, const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp, string filename, ORBextractor* ORBextractorLeft, ORBextractor* ORBextractorRight)
+Frame Tracking::BuildFrame(const int n_image, const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp, string filename, ORBextractor* ORBextractorLeft, ORBextractor* ORBextractorRight, double tr)
 {
     cv::Mat mImGray = imRectLeft;
     cv::Mat imGrayRight = imRectRight;
@@ -1586,7 +1586,7 @@ Frame Tracking::BuildFrame(const int n_image, const cv::Mat &imRectLeft,const cv
     //cout << "Incoming frame ended" << endl;
 
     
-
+    retFrame.mTimeRectify = tr;
     retFrame.mNameFile = filename;
     retFrame.mnDataset = mnNumDataset;
 

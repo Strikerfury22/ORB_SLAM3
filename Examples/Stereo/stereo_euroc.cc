@@ -103,7 +103,7 @@ int main(int argc, char **argv)
     }
 
     // Vector for tracking time statistics
-    vector<float> vTimesTrack;
+    vector<double> vTimesTrack;
     vTimesTrack.resize(tot_images);
 
     cout << endl << "-------" << endl;
@@ -160,11 +160,9 @@ int main(int argc, char **argv)
             [&SLAM, &vstrImageLeft, &vstrImageRight, &imgsLeft, &imgsRight, seq, &ptimer, &vTimesTrack, &times_load, &roulette_size](int n_image) {
                 ptimer.start_pipeline(n_image, 0);
 
-            #ifdef COMPILEDWITHC11
+
                 std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-            #else
-                std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
-            #endif
+
                 
                 cv::Mat imLeft = cv::imread(vstrImageLeft[seq][n_image],cv::IMREAD_UNCHANGED); //,cv::IMREAD_UNCHANGED);
                 cv::Mat imRight = cv::imread(vstrImageRight[seq][n_image],cv::IMREAD_UNCHANGED); //,cv::IMREAD_UNCHANGED);
@@ -186,11 +184,9 @@ int main(int argc, char **argv)
                 imgsLeft[n_image % roulette_size] = imLeft;
                 imgsRight[n_image % roulette_size] = imRight;
 
-            #ifdef COMPILEDWITHC11
+
                 std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-            #else
-                std::chrono::monotonic_clock::time_point t2 = std::chrono::monotonic_clock::now();
-            #endif
+
                 double t_load = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
                 vTimesTrack[n_image] = t_load;
 
@@ -206,21 +202,15 @@ int main(int argc, char **argv)
             [&SLAM, &frames, &ptimer, &seq, &vTimestampsCam, &vstrImageLeft, &imgsLeft, &imgsRight, &vTimesTrack, &extractorsLeft, &extractorsRight, &roulette_size](int n_image) {
                 ptimer.start_pipeline(n_image, 1);
 
-            #ifdef COMPILEDWITHC11
                 std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-            #else
-                std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
-            #endif
 
                 frames[n_image % roulette_size] = SLAM.GenerateFrame(n_image, imgsLeft[n_image % roulette_size], 
                     imgsRight[n_image % roulette_size], extractorsLeft[n_image % roulette_size], extractorsRight[n_image % roulette_size],
                     vTimestampsCam[seq][n_image], vector<ORB_SLAM3::IMU::Point>(), vstrImageLeft[seq][n_image]);
 
-            #ifdef COMPILEDWITHC11
+
                 std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-            #else
-                std::chrono::monotonic_clock::time_point t2 = std::chrono::monotonic_clock::now();
-            #endif
+
                 double t_extract = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
                 vTimesTrack[n_image] += t_extract;
                     
@@ -232,19 +222,15 @@ int main(int argc, char **argv)
             [&SLAM, &vTimesTrack, &frames, seq, &ptimer, &vTimesTrack, &times_load, &roulette_size](int n_image) {
                 ptimer.start_pipeline(n_image, 2);
 
-            #ifdef COMPILEDWITHC11
+
                 std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-            #else
-                std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
-            #endif
+
 
                 SLAM.TrackFrame(frames[n_image % roulette_size]);
 
-            #ifdef COMPILEDWITHC11
+                std::cout << n_image << "\t" << n_image % roulette_size << "\n";
                 std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-            #else
-                std::chrono::monotonic_clock::time_point t2 = std::chrono::monotonic_clock::now();
-            #endif
+
                 double t_track = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
                 vTimesTrack[n_image] += t_track;
                 double ttrack = vTimesTrack[n_image]; //Doesn't work????
