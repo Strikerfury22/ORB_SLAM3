@@ -27,6 +27,8 @@
 
 #include<stdint-gcc.h>
 
+#include<tbb/tbb.h>
+
 using namespace std;
 
 namespace ORB_SLAM3
@@ -1697,8 +1699,7 @@ namespace ORB_SLAM3
         const bool bForward = tlc(2)>CurrentFrame.mb && !bMono;
         const bool bBackward = -tlc(2)>CurrentFrame.mb && !bMono;
 
-        for(int i=0; i<LastFrame.N; i++)
-        {
+        tbb::parallel_for(0, LastFrame.N, [&](int i){
             MapPoint* pMP = LastFrame.mvpMapPoints[i];
             if(pMP)
             {
@@ -1713,14 +1714,14 @@ namespace ORB_SLAM3
                     const float invzc = 1.0/x3Dc(2);
 
                     if(invzc<0)
-                        continue;
+                        return;
 
                     Eigen::Vector2f uv = CurrentFrame.mpCamera->project(x3Dc);
 
                     if(uv(0)<CurrentFrame.mnMinX || uv(0)>CurrentFrame.mnMaxX)
-                        continue;
+                        return;
                     if(uv(1)<CurrentFrame.mnMinY || uv(1)>CurrentFrame.mnMaxY)
-                        continue;
+                        return;
 
                     int nLastOctave = (LastFrame.Nleft == -1 || i < LastFrame.Nleft) ? LastFrame.mvKeys[i].octave
                                                                                      : LastFrame.mvKeysRight[i - LastFrame.Nleft].octave;
@@ -1738,7 +1739,7 @@ namespace ORB_SLAM3
                         vIndices2 = CurrentFrame.GetFeaturesInArea(uv(0),uv(1), radius, nLastOctave-1, nLastOctave+1);
 
                     if(vIndices2.empty())
-                        continue;
+                        return;
 
                     const cv::Mat dMP = pMP->GetDescriptor();
 
@@ -1751,14 +1752,14 @@ namespace ORB_SLAM3
 
                         if(CurrentFrame.mvpMapPoints[i2])
                             if(CurrentFrame.mvpMapPoints[i2]->Observations()>0)
-                                continue;
+                                return;
 
                         if(CurrentFrame.Nleft == -1 && CurrentFrame.mvuRight[i2]>0)
                         {
                             const float ur = uv(0) - CurrentFrame.mbf*invzc;
                             const float er = fabs(ur - CurrentFrame.mvuRight[i2]);
                             if(er>radius)
-                                continue;
+                                return;
                         }
 
                         const cv::Mat &d = CurrentFrame.mDescriptors.row(i2);
@@ -1825,7 +1826,7 @@ namespace ORB_SLAM3
                             const size_t i2 = *vit;
                             if(CurrentFrame.mvpMapPoints[i2 + CurrentFrame.Nleft])
                                 if(CurrentFrame.mvpMapPoints[i2 + CurrentFrame.Nleft]->Observations()>0)
-                                    continue;
+                                    return;
 
                             const cv::Mat &d = CurrentFrame.mDescriptors.row(i2 + CurrentFrame.Nleft);
 
@@ -1864,7 +1865,8 @@ namespace ORB_SLAM3
                     }
                 }
             }
-        }
+        } //End lambda parallel_for
+    ); //End parallel_for
 
         //Apply rotation consistency
         if(mbCheckOrientation)
