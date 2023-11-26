@@ -48,102 +48,102 @@ namespace ORB_SLAM3
 
         const bool bFactor = th!=1.0;
 
-        for(size_t iMP=0; iMP<vpMapPoints.size(); iMP++)
-        {
-            MapPoint* pMP = vpMapPoints[iMP];
-            if(!pMP->mbTrackInView && !pMP->mbTrackInViewR)
-                continue;
+        tbb::parallel_for(tbb::blocked_range<size_t>(0,static_cast<int>(vpMapPoints.size()),25), [&](const tbb::blocked_range<size_t>& r){
+            for(size_t iMP=r.begin(); iMP!=r.end(); ++iMP){
+                MapPoint* pMP = vpMapPoints[iMP];
+                if(!pMP->mbTrackInView && !pMP->mbTrackInViewR)
+                    continue;
 
-            if(bFarPoints && pMP->mTrackDepth>thFarPoints)
-                continue;
+                if(bFarPoints && pMP->mTrackDepth>thFarPoints)
+                    continue;
 
-            if(pMP->isBad())
-                continue;
+                if(pMP->isBad())
+                    continue;
 
-            if(pMP->mbTrackInView)
-            {
-                const int &nPredictedLevel = pMP->mnTrackScaleLevel;
+                if(pMP->mbTrackInView)
+                {
+                    const int &nPredictedLevel = pMP->mnTrackScaleLevel;
 
-                // The size of the window will depend on the viewing direction
-                float r = RadiusByViewingCos(pMP->mTrackViewCos);
+                    // The size of the window will depend on the viewing direction
+                    float r = RadiusByViewingCos(pMP->mTrackViewCos);
 
-                if(bFactor)
-                    r*=th;
+                    if(bFactor)
+                        r*=th;
 
-                const vector<size_t> vIndices =
-                        F.GetFeaturesInArea(pMP->mTrackProjX,pMP->mTrackProjY,r*F.mvScaleFactors[nPredictedLevel],nPredictedLevel-1,nPredictedLevel);
+                    const vector<size_t> vIndices =
+                            F.GetFeaturesInArea(pMP->mTrackProjX,pMP->mTrackProjY,r*F.mvScaleFactors[nPredictedLevel],nPredictedLevel-1,nPredictedLevel);
 
-                if(!vIndices.empty()){
-                    const cv::Mat MPdescriptor = pMP->GetDescriptor();
+                    if(!vIndices.empty()){
+                        const cv::Mat MPdescriptor = pMP->GetDescriptor();
 
-                    int bestDist=256;
-                    int bestLevel= -1;
-                    int bestDist2=256;
-                    int bestLevel2 = -1;
-                    int bestIdx =-1 ;
+                        int bestDist=256;
+                        int bestLevel= -1;
+                        int bestDist2=256;
+                        int bestLevel2 = -1;
+                        int bestIdx =-1 ;
 
-                    // Get best and second matches with near keypoints
-                    for(vector<size_t>::const_iterator vit=vIndices.begin(), vend=vIndices.end(); vit!=vend; vit++)
-                    {
-                        const size_t idx = *vit;
-
-                        if(F.mvpMapPoints[idx])
-                            if(F.mvpMapPoints[idx]->Observations()>0)
-                                continue;
-
-                        if(F.Nleft == -1 && F.mvuRight[idx]>0)
+                        // Get best and second matches with near keypoints
+                        for(vector<size_t>::const_iterator vit=vIndices.begin(), vend=vIndices.end(); vit!=vend; vit++)
                         {
-                            const float er = fabs(pMP->mTrackProjXR-F.mvuRight[idx]);
-                            if(er>r*F.mvScaleFactors[nPredictedLevel])
-                                continue;
-                        }
+                            const size_t idx = *vit;
 
-                        const cv::Mat &d = F.mDescriptors.row(idx);
+                            if(F.mvpMapPoints[idx])
+                                if(F.mvpMapPoints[idx]->Observations()>0)
+                                    continue;
 
-                        const int dist = DescriptorDistance(MPdescriptor,d);
-
-                        if(dist<bestDist)
-                        {
-                            bestDist2=bestDist;
-                            bestDist=dist;
-                            bestLevel2 = bestLevel;
-                            bestLevel = (F.Nleft == -1) ? F.mvKeysUn[idx].octave
-                                                        : (idx < F.Nleft) ? F.mvKeys[idx].octave
-                                                                          : F.mvKeysRight[idx - F.Nleft].octave;
-                            bestIdx=idx;
-                        }
-                        else if(dist<bestDist2)
-                        {
-                            bestLevel2 = (F.Nleft == -1) ? F.mvKeysUn[idx].octave
-                                                         : (idx < F.Nleft) ? F.mvKeys[idx].octave
-                                                                           : F.mvKeysRight[idx - F.Nleft].octave;
-                            bestDist2=dist;
-                        }
-                    }
-
-                    // Apply ratio to second match (only if best and second are in the same scale level)
-                    if(bestDist<=TH_HIGH)
-                    {
-                        if(bestLevel==bestLevel2 && bestDist>mfNNratio*bestDist2)
-                            continue;
-
-                        if(bestLevel!=bestLevel2 || bestDist<=mfNNratio*bestDist2){
-                            F.mvpMapPoints[bestIdx]=pMP;
-
-                            if(F.Nleft != -1 && F.mvLeftToRightMatch[bestIdx] != -1){ //Also match with the stereo observation at right camera
-                                F.mvpMapPoints[F.mvLeftToRightMatch[bestIdx] + F.Nleft] = pMP;
-                                nmatches++;
-                                right++;
+                            if(F.Nleft == -1 && F.mvuRight[idx]>0)
+                            {
+                                const float er = fabs(pMP->mTrackProjXR-F.mvuRight[idx]);
+                                if(er>r*F.mvScaleFactors[nPredictedLevel])
+                                    continue;
                             }
 
-                            nmatches++;
-                            left++;
+                            const cv::Mat &d = F.mDescriptors.row(idx);
+
+                            const int dist = DescriptorDistance(MPdescriptor,d);
+
+                            if(dist<bestDist)
+                            {
+                                bestDist2=bestDist;
+                                bestDist=dist;
+                                bestLevel2 = bestLevel;
+                                bestLevel = (F.Nleft == -1) ? F.mvKeysUn[idx].octave
+                                                            : (idx < F.Nleft) ? F.mvKeys[idx].octave
+                                                                            : F.mvKeysRight[idx - F.Nleft].octave;
+                                bestIdx=idx;
+                            }
+                            else if(dist<bestDist2)
+                            {
+                                bestLevel2 = (F.Nleft == -1) ? F.mvKeysUn[idx].octave
+                                                            : (idx < F.Nleft) ? F.mvKeys[idx].octave
+                                                                            : F.mvKeysRight[idx - F.Nleft].octave;
+                                bestDist2=dist;
+                            }
+                        }
+
+                        // Apply ratio to second match (only if best and second are in the same scale level)
+                        if(bestDist<=TH_HIGH)
+                        {
+                            if(bestLevel==bestLevel2 && bestDist>mfNNratio*bestDist2)
+                                continue;
+
+                            if(bestLevel!=bestLevel2 || bestDist<=mfNNratio*bestDist2){
+                                F.mvpMapPoints[bestIdx]=pMP;
+
+                                if(F.Nleft != -1 && F.mvLeftToRightMatch[bestIdx] != -1){ //Also match with the stereo observation at right camera
+                                    F.mvpMapPoints[F.mvLeftToRightMatch[bestIdx] + F.Nleft] = pMP;
+                                    nmatches++;
+                                    right++;
+                                }
+
+                                nmatches++;
+                                left++;
+                            }
                         }
                     }
                 }
-            }
 
-            if(F.Nleft != -1 && pMP->mbTrackInViewR){
+                if(F.Nleft != -1 && pMP->mbTrackInViewR){
                 const int &nPredictedLevel = pMP->mnTrackScaleLevelR;
                 if(nPredictedLevel != -1){
                     float r = RadiusByViewingCos(pMP->mTrackViewCosR);
@@ -210,7 +210,9 @@ namespace ORB_SLAM3
                     }
                 }
             }
-        }
+            } //End of blocked_range
+        } //End Lambda PF
+        ); //End PF
         return nmatches;
     }
 
