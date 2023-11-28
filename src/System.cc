@@ -436,7 +436,7 @@ Sophus::SE3f System::TrackFrame(Frame& frame)
         mpTracker->vdRectStereo_ms.push_back(frame.mTimeRectify);
     #endif
 
-    mpTracker->mCurrentFrame = Frame(frame);
+    mpTracker->mCurrentFrame = frame;
 
     mpTracker->Track();
 
