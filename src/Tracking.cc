@@ -123,7 +123,7 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     vdResizeImage_ms.clear();
     vdORBExtract_ms.clear();
     vdStereoMatch_ms.clear();
-    vdIMUInteg_ms.clear();
+    vdInitTracking_ms.clear();
     vdPosePred_ms.clear();
     vdLMTrack_ms.clear();
     vdNewKF_ms.clear();
@@ -226,7 +226,7 @@ void Tracking::TrackStats2File()
     f.open("TrackingTimeStats.txt");
     f << fixed << setprecision(6);
 
-    f << "#Load File[ms], Image Rect[ms], Image Resize[ms], ORB ext[ms], Stereo match[ms], IMU preint[ms], Pose pred[ms], LM track[ms], KF dec[ms], Total[ms]" << endl;
+    f << "#Load File[ms], Image Rect[ms], Image Resize[ms], ORB ext[ms], Stereo match[ms], Init Track[ms], Pose pred[ms], LM track[ms], KF dec[ms], Total[ms]" << endl;
 
     for(int i=0; i<vdTrackTotal_ms.size(); ++i)
     {
@@ -255,9 +255,9 @@ void Tracking::TrackStats2File()
         }
 
         double imu_preint = 0.0;
-        if(!vdIMUInteg_ms.empty())
+        if(!vdInitTracking_ms.empty())
         {
-            imu_preint = vdIMUInteg_ms[i];
+            imu_preint = vdInitTracking_ms[i];
         }
 
         f << load_file << "," << stereo_rect << "," << resize_image << "," << vdORBExtract_ms[i] << "," << stereo_match << "," << imu_preint << ","
@@ -324,12 +324,12 @@ void Tracking::PrintTimeStats()
         f << "Stereo Matching: " << average << "$\\pm$" << deviation << std::endl;
     }
 
-    if(!vdIMUInteg_ms.empty())
+    if(!vdInitTracking_ms.empty())
     {
-        average = calcAverage(vdIMUInteg_ms);
-        deviation = calcDeviation(vdIMUInteg_ms, average);
-        std::cout << "IMU Preintegration: " << average << "$\\pm$" << deviation << std::endl;
-        f << "IMU Preintegration: " << average << "$\\pm$" << deviation << std::endl;
+        average = calcAverage(vdInitTracking_ms);
+        deviation = calcDeviation(vdInitTracking_ms, average);
+        std::cout << "Start Tracking: " << average << "$\\pm$" << deviation << std::endl;
+        f << "Start Tracking: " << average << "$\\pm$" << deviation << std::endl;
     }
 
     average = calcAverage(vdPosePred_ms);
@@ -1808,7 +1808,9 @@ void Tracking::ResetFrameIMU()
 
 void Tracking::Track()
 {
-
+    #ifdef REGISTER_TIMES
+        std::chrono::steady_clock::time_point time_StartTrack = std::chrono::steady_clock::now();
+    #endif
     if (bStepByStep)
     {
         std::cout << "Tracking: Waiting to the next step" << std::endl;
@@ -1881,18 +1883,12 @@ void Tracking::Track()
 
     mLastProcessedState=mState;
 
+
     if ((mSensor == System::IMU_MONOCULAR || mSensor == System::IMU_STEREO || mSensor == System::IMU_RGBD) && !mbCreatedMap)
     {
-#ifdef REGISTER_TIMES
-        std::chrono::steady_clock::time_point time_StartPreIMU = std::chrono::steady_clock::now();
-#endif
-        PreintegrateIMU();
-#ifdef REGISTER_TIMES
-        std::chrono::steady_clock::time_point time_EndPreIMU = std::chrono::steady_clock::now();
 
-        double timePreImu = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndPreIMU - time_StartPreIMU).count();
-        vdIMUInteg_ms.push_back(timePreImu);
-#endif
+        PreintegrateIMU();
+
 
     }
     mbCreatedMap = false;
@@ -1909,6 +1905,13 @@ void Tracking::Track()
         pCurrentMap->SetLastMapChange(nCurMapChangeIndex);
         mbMapUpdated = true;
     }
+
+    #ifdef REGISTER_TIMES
+        std::chrono::steady_clock::time_point time_EndInitTracking = std::chrono::steady_clock::now();
+
+        double timeInitTracking = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndInitTracking - time_StartTrack).count();
+        vdInitTracking_ms.push_back(start_tracking + timeInitTracking); //Add time measured on System::TrackStereo
+    #endif
 
 
     if(mState==NOT_INITIALIZED)
@@ -2211,9 +2214,12 @@ void Tracking::Track()
         double timeLMTrack = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndLMTrack - time_StartLMTrack).count();
         vdLMTrack_ms.push_back(timeLMTrack);
 #endif
+#ifdef REGISTER_TIMES
+        std::chrono::steady_clock::time_point time_StartNewKF = std::chrono::steady_clock::now();
+#endif
 
         // Update drawer
-        mpFrameDrawer->Update(this);
+        //mpFrameDrawer->Update(this);
         if(mCurrentFrame.isSet())
             mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.GetPose());
 
@@ -2253,9 +2259,6 @@ void Tracking::Track()
             }
             mlpTemporalPoints.clear();
 
-#ifdef REGISTER_TIMES
-            std::chrono::steady_clock::time_point time_StartNewKF = std::chrono::steady_clock::now();
-#endif
             bool bNeedKF = NeedNewKeyFrame();
 
             // Check if we need to insert a new keyframe
@@ -2264,12 +2267,7 @@ void Tracking::Track()
                                    (mSensor == System::IMU_MONOCULAR || mSensor == System::IMU_STEREO || mSensor == System::IMU_RGBD))))
                 CreateNewKeyFrame();
 
-#ifdef REGISTER_TIMES
-            std::chrono::steady_clock::time_point time_EndNewKF = std::chrono::steady_clock::now();
 
-            double timeNewKF = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndNewKF - time_StartNewKF).count();
-            vdNewKF_ms.push_back(timeNewKF);
-#endif
 
             // We allow points with high innovation (considererd outliers by the Huber Function)
             // pass to the new keyframe, so that bundle adjustment will finally decide
@@ -2280,6 +2278,12 @@ void Tracking::Track()
                 if(mCurrentFrame.mvpMapPoints[i] && mCurrentFrame.mvbOutlier[i])
                     mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
             }
+        #ifdef REGISTER_TIMES
+        std::chrono::steady_clock::time_point time_EndNewKF = std::chrono::steady_clock::now();
+
+        double timeNewKF = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndNewKF - time_StartNewKF).count();
+        vdNewKF_ms.push_back(timeNewKF);
+#endif
         }
 
         // Reset if the camera get lost soon after initialization

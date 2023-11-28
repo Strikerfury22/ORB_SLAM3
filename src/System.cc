@@ -322,6 +322,12 @@ Sophus::SE3f System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, 
     if (mSensor == System::IMU_STEREO)
         for(size_t i_imu = 0; i_imu < vImuMeas.size(); i_imu++)
             mpTracker->GrabImuData(vImuMeas[i_imu]);
+    
+#ifdef REGISTER_TIMES
+    //These locks are measured as InitTracking on Pipeline version
+    std::chrono::steady_clock::time_point time_EndInitTracking = std::chrono::steady_clock::now();
+    mpTracker->start_tracking = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndInitTracking - t2).count();
+#endif
 
     // std::cout << "start GrabImageStereo" << std::endl;
     Sophus::SE3f Tcw = mpTracker->GrabImageStereo(imLeftToFeed,imRightToFeed,timestamp,filename);
