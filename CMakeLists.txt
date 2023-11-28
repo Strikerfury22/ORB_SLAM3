@@ -163,8 +163,8 @@ endif()
 #     target_link_libraries(rgbd_inertial_realsense_D435i ${PROJECT_NAME})
 # endif()
 
-# #Stereo examples
-# set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Stereo)
+#Stereo examples
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Stereo)
 
 # add_executable(stereo_kitti
 #         Examples/Stereo/stereo_kitti.cc)
