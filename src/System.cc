@@ -1526,6 +1526,36 @@ void System::InsertTrackTime(double& time)
 {
     mpTracker->vdTrackTotal_ms.push_back(time);
 }
+
+void System::InsertVoidFrameTime()
+{
+    size_t expected_size = mpTracker->vdTrackTotal_ms.size();
+
+    if (mpTracker->vdLoadFile_ms.size() < expected_size)
+        mpTracker->vdLoadFile_ms.push_back(0);
+    if (mpTracker->vdRectStereo_ms.size() < expected_size)
+        mpTracker->vdRectStereo_ms.push_back(0);
+    if (mpTracker->vdResizeImage_ms.size() < expected_size)
+        mpTracker->vdResizeImage_ms.push_back(0);
+    if (mpTracker->vdORBExtract_ms.size() < expected_size)
+        mpTracker->vdORBExtract_ms.push_back(0);
+    if (mpTracker->vdStereoMatch_ms.size() < expected_size)
+        mpTracker->vdStereoMatch_ms.push_back(0);
+    if (mpTracker->vdInitTracking_ms.size() < expected_size)
+        mpTracker->vdInitTracking_ms.push_back(0);
+    if (mpTracker->vdPosePred_ms.size() < expected_size)
+        mpTracker->vdPosePred_ms.push_back(0);
+    if (mpTracker->vdLMTrack_ms.size() < expected_size)
+        mpTracker->vdLMTrack_ms.push_back(0);
+    if (mpTracker->vdNewKF_ms.size() < expected_size)
+        mpTracker->vdNewKF_ms.push_back(0);
+    if (mpTracker->vdSearchProjectionFrame.size() < expected_size)
+        mpTracker->vdSearchProjectionFrame.push_back(0);
+    if (mpTracker->vdPF_Frustum.size() < expected_size)
+        mpTracker->vdPF_Frustum.push_back(0);
+    if (mpTracker->vdPF_SearchProjectionLocalMP.size() < expected_size)
+        mpTracker->vdPF_SearchProjectionLocalMP.push_back(0);
+}
 #endif
 
 void System::SaveAtlas(int type){

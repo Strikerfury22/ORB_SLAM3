@@ -192,6 +192,7 @@ public:
     vector<double> vdNewKF_ms;
     vector<double> vdTrackTotal_ms;
 
+    vector<double> vdSearchProjectionFrame;
     vector<double> vdPF_Frustum;
     vector<double> vdPF_SearchProjectionLocalMP;
     std::chrono::steady_clock::time_point start_tracking;

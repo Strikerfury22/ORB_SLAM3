@@ -129,6 +129,7 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     vdNewKF_ms.clear();
     vdTrackTotal_ms.clear();
 
+    vdSearchProjectionFrame.clear();
     vdPF_Frustum.clear();
     vdPF_SearchProjectionLocalMP.clear();
 #endif
@@ -229,7 +230,7 @@ void Tracking::TrackStats2File()
     f.open("TrackingTimeStats.txt");
     f << fixed << setprecision(6);
 
-    f << "#Load File[ms], Image Rect[ms], Image Resize[ms], ORB ext[ms], Stereo match[ms], Init Track[ms], Pose pred[ms], LM track[ms], KF dec[ms], Total[ms], PF1[ms], PF2[ms]" << endl;
+    f << "#Load File[ms], Image Rect[ms], Image Resize[ms], ORB ext[ms], Stereo match[ms], Init Track[ms], Pose pred[ms], LM track[ms], KF dec[ms], Total[ms], PF1[ms], PF2[ms], PF3[ms]" << endl;
 
     for(int i=0; i<vdTrackTotal_ms.size(); ++i)
     {
@@ -270,13 +271,19 @@ void Tracking::TrackStats2File()
         }
 
         double pf2 = 0.0;
+        if(!vdSearchProjectionFrame.empty())
+        {
+            pf2 = vdSearchProjectionFrame[i];
+        }
+
+        double pf3 = 0.0;
         if(!vdPF_SearchProjectionLocalMP.empty())
         {
-            pf2 = vdPF_SearchProjectionLocalMP[i];
+            pf3 = vdPF_SearchProjectionLocalMP[i];
         }
 
         f << load_file << "," << stereo_rect << "," << resize_image << "," << vdORBExtract_ms[i] << "," << stereo_match << "," << imu_preint << ","
-          << vdPosePred_ms[i] <<  "," << vdLMTrack_ms[i] << "," << vdNewKF_ms[i] << "," << vdTrackTotal_ms[i] << "," << vdPF_Frustum[i] << "," << vdPF_SearchProjectionLocalMP[i] << endl;
+          << vdPosePred_ms[i] <<  "," << vdLMTrack_ms[i] << "," << vdNewKF_ms[i] << "," << vdTrackTotal_ms[i] << "," << pf3 << "," << pf2<< "," << pf3 << endl;
     }
 
     f.close();
@@ -367,15 +374,20 @@ void Tracking::PrintTimeStats()
     std::cout << "Total Tracking: " << average << "$\\pm$" << deviation << std::endl;
     f << "Total Tracking: " << average << "$\\pm$" << deviation << std::endl;
     
-    average = calcAverage(vdPF_Frustum);
-    deviation = calcDeviation(vdPF_Frustum, average);
+    average = calcAverage(vdSearchProjectionFrame);
+    deviation = calcDeviation(vdSearchProjectionFrame, average);
     std::cout << "PF1: " << average << "$\\pm$" << deviation << std::endl;
     f << "PF1: " << average << "$\\pm$" << deviation << std::endl;
 
-    average = calcAverage(vdPF_SearchProjectionLocalMP);
-    deviation = calcDeviation(vdPF_SearchProjectionLocalMP, average);
+    average = calcAverage(vdPF_Frustum);
+    deviation = calcDeviation(vdPF_Frustum, average);
     std::cout << "PF2: " << average << "$\\pm$" << deviation << std::endl;
     f << "PF2: " << average << "$\\pm$" << deviation << std::endl;
+
+    average = calcAverage(vdPF_SearchProjectionLocalMP);
+    deviation = calcDeviation(vdPF_SearchProjectionLocalMP, average);
+    std::cout << "PF3: " << average << "$\\pm$" << deviation << std::endl;
+    f << "PF3: " << average << "$\\pm$" << deviation << std::endl;
 
     // Local Mapping time stats
     std::cout << std::endl << std::endl << std::endl;
@@ -2985,8 +2997,19 @@ bool Tracking::TrackWithMotionModel()
         th=7;
     else
         th=15;
+    
+#ifdef REGISTER_TIMES
+    std::chrono::steady_clock::time_point time_Start = std::chrono::steady_clock::now();
+#endif
 
     int nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR || mSensor==System::IMU_MONOCULAR, grainsize);
+
+#ifdef REGISTER_TIMES
+    std::chrono::steady_clock::time_point time_End = std::chrono::steady_clock::now();
+
+    double t = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_End - time_Start).count();
+    vdSearchProjectionFrame.push_back(t);
+#endif
 
     // If few matches, uses a wider window search
     if(nmatches<20)

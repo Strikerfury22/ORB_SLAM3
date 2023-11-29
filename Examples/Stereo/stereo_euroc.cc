@@ -238,6 +238,7 @@ int main(int argc, char **argv)
             #ifdef REGISTER_TIMES
                     SLAM.InsertLoadTime(times_load[n_image % roulette_size]);
                     SLAM.InsertTrackTime(ttrack);
+                    SLAM.InsertVoidFrameTime();
             #endif
 
 
