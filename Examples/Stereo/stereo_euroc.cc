@@ -159,6 +159,7 @@ int main(int argc, char **argv)
 #ifdef REGISTER_TIMES
             t_track = t_load + t_resize + t_rect + std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
             SLAM.InsertTrackTime(t_track);
+            SLAM.InsertVoidFrameTime();
 #endif
             t = std::chrono::high_resolution_clock::now();
             timer_frame_end[proccIm] = std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch());
