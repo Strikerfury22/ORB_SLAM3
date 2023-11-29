@@ -229,7 +229,7 @@ void Tracking::TrackStats2File()
     f.open("TrackingTimeStats.txt");
     f << fixed << setprecision(6);
 
-    f << "#Load File[ms], Image Rect[ms], Image Resize[ms], ORB ext[ms], Stereo match[ms], Init Track[ms], Pose pred[ms], LM track[ms], KF dec[ms], Total[ms]" << endl;
+    f << "#Load File[ms], Image Rect[ms], Image Resize[ms], ORB ext[ms], Stereo match[ms], Init Track[ms], Pose pred[ms], LM track[ms], KF dec[ms], Total[ms], PF1[ms], PF2[ms]" << endl;
 
     for(int i=0; i<vdTrackTotal_ms.size(); ++i)
     {
