@@ -3489,16 +3489,15 @@ void Tracking::SearchLocalPoints()
     }
 
     int nToMatch=0;
-    std::mutex m1,m2;
 
 #ifdef REGISTER_TIMES
     std::chrono::steady_clock::time_point time_Start = std::chrono::steady_clock::now();
 #endif
 
     // Project points in frame and check its visibility
-    tbb::parallel_for(tbb::blocked_range<size_t>(0,mvpLocalMapPoints.size(),grainsize), [&](const tbb::blocked_range<size_t>& r){
-        for(size_t i=r.begin(); i!=r.end(); ++i){
-        MapPoint* pMP = mvpLocalMapPoints[i];
+    for(vector<MapPoint*>::iterator vit=mvpLocalMapPoints.begin(), vend=mvpLocalMapPoints.end(); vit!=vend; vit++)
+    {
+        MapPoint* pMP = *vit;
 
         if(pMP->mnLastFrameSeen == mCurrentFrame.mnId)
             continue;
@@ -3508,15 +3507,13 @@ void Tracking::SearchLocalPoints()
         if(mCurrentFrame.isInFrustum(pMP,0.5))
         {
             pMP->IncreaseVisible();
-            unique_lock<mutex> lock(m1);
             nToMatch++;
         }
         if(pMP->mbTrackInView)
         {
-            unique_lock<mutex> lock(m2);
             mCurrentFrame.mmProjectPoints[pMP->mnId] = cv::Point2f(pMP->mTrackProjX, pMP->mTrackProjY);
         }
-    }});
+    }
 #ifdef REGISTER_TIMES
     std::chrono::steady_clock::time_point time_End = std::chrono::steady_clock::now();
 
