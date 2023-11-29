@@ -128,6 +128,9 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     vdLMTrack_ms.clear();
     vdNewKF_ms.clear();
     vdTrackTotal_ms.clear();
+
+    vdPF_Frustum.clear();
+    vdPF_SearchProjectionLocalMP.clear();
 #endif
 }
 
@@ -260,8 +263,20 @@ void Tracking::TrackStats2File()
             imu_preint = vdInitTracking_ms[i];
         }
 
+        double pf1 = 0.0;
+        if(!vdPF_Frustum.empty())
+        {
+            pf1 = vdPF_Frustum[i];
+        }
+
+        double pf2 = 0.0;
+        if(!vdPF_SearchProjectionLocalMP.empty())
+        {
+            pf2 = vdPF_SearchProjectionLocalMP[i];
+        }
+
         f << load_file << "," << stereo_rect << "," << resize_image << "," << vdORBExtract_ms[i] << "," << stereo_match << "," << imu_preint << ","
-          << vdPosePred_ms[i] <<  "," << vdLMTrack_ms[i] << "," << vdNewKF_ms[i] << "," << vdTrackTotal_ms[i] << endl;
+          << vdPosePred_ms[i] <<  "," << vdLMTrack_ms[i] << "," << vdNewKF_ms[i] << "," << vdTrackTotal_ms[i] << "," << vdPF_Frustum[i] << "," << vdPF_SearchProjectionLocalMP[i] << endl;
     }
 
     f.close();
@@ -351,6 +366,16 @@ void Tracking::PrintTimeStats()
     deviation = calcDeviation(vdTrackTotal_ms, average);
     std::cout << "Total Tracking: " << average << "$\\pm$" << deviation << std::endl;
     f << "Total Tracking: " << average << "$\\pm$" << deviation << std::endl;
+    
+    average = calcAverage(vdPF_Frustum);
+    deviation = calcDeviation(vdPF_Frustum, average);
+    std::cout << "PF1: " << average << "$\\pm$" << deviation << std::endl;
+    f << "PF1: " << average << "$\\pm$" << deviation << std::endl;
+
+    average = calcAverage(vdPF_SearchProjectionLocalMP);
+    deviation = calcDeviation(vdPF_SearchProjectionLocalMP, average);
+    std::cout << "PF2: " << average << "$\\pm$" << deviation << std::endl;
+    f << "PF2: " << average << "$\\pm$" << deviation << std::endl;
 
     // Local Mapping time stats
     std::cout << std::endl << std::endl << std::endl;
@@ -2961,7 +2986,7 @@ bool Tracking::TrackWithMotionModel()
     else
         th=15;
 
-    int nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR || mSensor==System::IMU_MONOCULAR);
+    int nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR || mSensor==System::IMU_MONOCULAR, grainsize);
 
     // If few matches, uses a wider window search
     if(nmatches<20)
@@ -3441,11 +3466,16 @@ void Tracking::SearchLocalPoints()
     }
 
     int nToMatch=0;
+    std::mutex m1,m2;
+
+#ifdef REGISTER_TIMES
+    std::chrono::steady_clock::time_point time_Start = std::chrono::steady_clock::now();
+#endif
 
     // Project points in frame and check its visibility
-    for(vector<MapPoint*>::iterator vit=mvpLocalMapPoints.begin(), vend=mvpLocalMapPoints.end(); vit!=vend; vit++)
-    {
-        MapPoint* pMP = *vit;
+    tbb::parallel_for(tbb::blocked_range<size_t>(0,mvpLocalMapPoints.size(),grainsize), [&](const tbb::blocked_range<size_t>& r){
+        for(size_t i=r.begin(); i!=r.end(); ++i){
+        MapPoint* pMP = mvpLocalMapPoints[i];
 
         if(pMP->mnLastFrameSeen == mCurrentFrame.mnId)
             continue;
@@ -3455,13 +3485,25 @@ void Tracking::SearchLocalPoints()
         if(mCurrentFrame.isInFrustum(pMP,0.5))
         {
             pMP->IncreaseVisible();
+            unique_lock<mutex> lock(m1);
             nToMatch++;
         }
         if(pMP->mbTrackInView)
         {
+            unique_lock<mutex> lock(m2);
             mCurrentFrame.mmProjectPoints[pMP->mnId] = cv::Point2f(pMP->mTrackProjX, pMP->mTrackProjY);
         }
-    }
+    }});
+#ifdef REGISTER_TIMES
+    std::chrono::steady_clock::time_point time_End = std::chrono::steady_clock::now();
+
+    double t = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_End - time_Start).count();
+    vdPF_Frustum.push_back(t);
+#endif
+
+#ifdef REGISTER_TIMES
+    time_Start = std::chrono::steady_clock::now();
+#endif
 
     if(nToMatch>0)
     {
@@ -3487,9 +3529,17 @@ void Tracking::SearchLocalPoints()
 
         if(mState==LOST || mState==RECENTLY_LOST) // Lost for less than 1 second
             th=15; // 15
+        
 
-        int matches = matcher.SearchByProjection(mCurrentFrame, mvpLocalMapPoints, th, mpLocalMapper->mbFarPoints, mpLocalMapper->mThFarPoints);
+
+        int matches = matcher.SearchByProjection(mCurrentFrame, mvpLocalMapPoints, th, mpLocalMapper->mbFarPoints, mpLocalMapper->mThFarPoints, grainsize);
     }
+#ifdef REGISTER_TIMES
+    time_End = std::chrono::steady_clock::now();
+
+    t = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_End - time_Start).count();
+    vdPF_SearchProjectionLocalMP.push_back(t);
+#endif
 }
 
 void Tracking::UpdateLocalMap()

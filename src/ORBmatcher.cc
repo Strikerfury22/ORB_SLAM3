@@ -42,13 +42,13 @@ namespace ORB_SLAM3
     {
     }
 
-    int ORBmatcher::SearchByProjection(Frame &F, const vector<MapPoint*> &vpMapPoints, const float th, const bool bFarPoints, const float thFarPoints)
+    int ORBmatcher::SearchByProjection(Frame &F, const vector<MapPoint*> &vpMapPoints, const float th, const bool bFarPoints, const float thFarPoints, const size_t grainsize)
     {
         int nmatches=0, left = 0, right = 0;
 
         const bool bFactor = th!=1.0;
 
-        tbb::parallel_for(tbb::blocked_range<size_t>(0,static_cast<int>(vpMapPoints.size()),25), [&](const tbb::blocked_range<size_t>& r){
+        tbb::parallel_for(tbb::blocked_range<size_t>(0,vpMapPoints.size(),grainsize), [&](const tbb::blocked_range<size_t>& r){
             for(size_t iMP=r.begin(); iMP!=r.end(); ++iMP){
                 MapPoint* pMP = vpMapPoints[iMP];
                 if(!pMP->mbTrackInView && !pMP->mbTrackInViewR)
@@ -1682,7 +1682,7 @@ namespace ORB_SLAM3
         return nFound;
     }
 
-    int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, const float th, const bool bMono)
+    int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, const float th, const bool bMono, const size_t grainsize)
     {
         int nmatches = 0;
 
@@ -1701,7 +1701,8 @@ namespace ORB_SLAM3
         const bool bForward = tlc(2)>CurrentFrame.mb && !bMono;
         const bool bBackward = -tlc(2)>CurrentFrame.mb && !bMono;
 
-        tbb::parallel_for(0, LastFrame.N, [&](int i){
+        tbb::parallel_for(tbb::blocked_range<size_t>(0,LastFrame.N,grainsize), [&](const tbb::blocked_range<size_t>& r){
+        for(size_t i=r.begin(); i!=r.end(); ++i){
             MapPoint* pMP = LastFrame.mvpMapPoints[i];
             if(pMP)
             {
@@ -1716,14 +1717,14 @@ namespace ORB_SLAM3
                     const float invzc = 1.0/x3Dc(2);
 
                     if(invzc<0)
-                        return;
+                        continue;
 
                     Eigen::Vector2f uv = CurrentFrame.mpCamera->project(x3Dc);
 
                     if(uv(0)<CurrentFrame.mnMinX || uv(0)>CurrentFrame.mnMaxX)
-                        return;
+                        continue;
                     if(uv(1)<CurrentFrame.mnMinY || uv(1)>CurrentFrame.mnMaxY)
-                        return;
+                        continue;
 
                     int nLastOctave = (LastFrame.Nleft == -1 || i < LastFrame.Nleft) ? LastFrame.mvKeys[i].octave
                                                                                      : LastFrame.mvKeysRight[i - LastFrame.Nleft].octave;
@@ -1741,7 +1742,7 @@ namespace ORB_SLAM3
                         vIndices2 = CurrentFrame.GetFeaturesInArea(uv(0),uv(1), radius, nLastOctave-1, nLastOctave+1);
 
                     if(vIndices2.empty())
-                        return;
+                        continue;
 
                     const cv::Mat dMP = pMP->GetDescriptor();
 
@@ -1754,14 +1755,14 @@ namespace ORB_SLAM3
 
                         if(CurrentFrame.mvpMapPoints[i2])
                             if(CurrentFrame.mvpMapPoints[i2]->Observations()>0)
-                                return;
+                                continue;
 
                         if(CurrentFrame.Nleft == -1 && CurrentFrame.mvuRight[i2]>0)
                         {
                             const float ur = uv(0) - CurrentFrame.mbf*invzc;
                             const float er = fabs(ur - CurrentFrame.mvuRight[i2]);
                             if(er>radius)
-                                return;
+                                continue;
                         }
 
                         const cv::Mat &d = CurrentFrame.mDescriptors.row(i2);
@@ -1828,7 +1829,7 @@ namespace ORB_SLAM3
                             const size_t i2 = *vit;
                             if(CurrentFrame.mvpMapPoints[i2 + CurrentFrame.Nleft])
                                 if(CurrentFrame.mvpMapPoints[i2 + CurrentFrame.Nleft]->Observations()>0)
-                                    return;
+                                    continue;
 
                             const cv::Mat &d = CurrentFrame.mDescriptors.row(i2 + CurrentFrame.Nleft);
 
@@ -1867,7 +1868,7 @@ namespace ORB_SLAM3
                     }
                 }
             }
-        } //End lambda parallel_for
+        }} //End lambda parallel_for
     ); //End parallel_for
 
         //Apply rotation consistency

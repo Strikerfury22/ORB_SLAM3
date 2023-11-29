@@ -191,6 +191,9 @@ public:
     vector<double> vdLMTrack_ms;
     vector<double> vdNewKF_ms;
     vector<double> vdTrackTotal_ms;
+
+    vector<double> vdPF_Frustum;
+    vector<double> vdPF_SearchProjectionLocalMP;
     std::chrono::steady_clock::time_point start_tracking;
 #endif
 
@@ -372,6 +375,7 @@ public:
     Frame BuildFrame(const int n_image, const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp, string filename, ORBextractor* ORBextractorLeft, ORBextractor* ORBextractorRight, double tr);
     
     cv::Mat mImRight;
+    size_t grainsize = 1;
 };
 
 } //namespace ORB_SLAM

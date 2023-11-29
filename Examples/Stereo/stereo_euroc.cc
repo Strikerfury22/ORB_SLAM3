@@ -44,18 +44,19 @@ int main(int argc, char **argv)
 
     std::cout << "START\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
     
-    if(argc < 6)
+    if(argc < 7)
     {
-        cerr << endl << "Usage: ./stereo_euroc tokens_pipeline path_to_vocabulary path_to_settings path_to_sequence_folder_1 path_to_times_file_1 (path_to_image_folder_2 path_to_times_file_2 ... path_to_image_folder_N path_to_times_file_N) (trajectory_file_name)" << endl;
+        cerr << endl << "Usage: ./stereo_euroc tokens_pipeline pf_grainsize path_to_vocabulary path_to_settings path_to_sequence_folder_1 path_to_times_file_1 (path_to_image_folder_2 path_to_times_file_2 ... path_to_image_folder_N path_to_times_file_N) (trajectory_file_name)" << endl;
 
         return 1;
     }
 
     const int num_tokens_pipeline = atoi(argv[1]);
     const int roulette_size = ROULETTE_TOKENS_FACTOR * num_tokens_pipeline;
-    const int num_seq = (argc-4)/2;
+    const int grainsize = atoi(argv[2]);
+    const int num_seq = (argc-5)/2;
     cout << "num_seq = " << num_seq << endl;
-    bool bFileName= (((argc-4) % 2) == 1);
+    bool bFileName= (((argc-5) % 2) == 1);
     string file_name;
     if (bFileName)
     {
@@ -89,8 +90,8 @@ int main(int argc, char **argv)
     {
         cout << "Loading images for sequence " << seq << "...";
 
-        string pathSeq(argv[(2*seq) + 4]);
-        string pathTimeStamps(argv[(2*seq) + 5]);
+        string pathSeq(argv[(2*seq) + 5]);
+        string pathTimeStamps(argv[(2*seq) + 6]);
 
         string pathCam0 = pathSeq + "/mav0/cam0/data";
         string pathCam1 = pathSeq + "/mav0/cam1/data";
@@ -110,7 +111,7 @@ int main(int argc, char **argv)
     cout.precision(17);
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM3::System SLAM(argv[2],argv[3],ORB_SLAM3::System::STEREO, false);
+    ORB_SLAM3::System SLAM(argv[3],argv[4],ORB_SLAM3::System::STEREO, false, grainsize);
 
     //Initialize ORBextractors
     int nFeatures = SLAM.settings_->nFeatures();
