@@ -195,6 +195,7 @@ public:
     void InsertRectTime(double& time);
     void InsertResizeTime(double& time);
     void InsertTrackTime(double& time);
+    void InsertVoidFrameTime();
 #endif
 
 private:
