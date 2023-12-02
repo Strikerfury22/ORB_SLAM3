@@ -1699,8 +1699,8 @@ namespace ORB_SLAM3
         const bool bForward = tlc(2)>CurrentFrame.mb && !bMono;
         const bool bBackward = -tlc(2)>CurrentFrame.mb && !bMono;
 
-        for(int i=0; i<LastFrame.N; i++)
-        {
+        tbb::parallel_for(tbb::blocked_range<size_t>(0,LastFrame.N,grainsize), [&](const tbb::blocked_range<size_t>& r){
+        for(size_t i=r.begin(); i!=r.end(); ++i){
             MapPoint* pMP = LastFrame.mvpMapPoints[i];
             if(pMP)
             {
@@ -1866,7 +1866,8 @@ namespace ORB_SLAM3
                     }
                 }
             }
-        }
+        }} //End lambda parallel_for
+    , tbb::simple_partitioner()); //End parallel_for
 
         //Apply rotation consistency
         if(mbCheckOrientation)
