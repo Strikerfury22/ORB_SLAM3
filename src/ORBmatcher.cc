@@ -48,8 +48,8 @@ namespace ORB_SLAM3
 
         const bool bFactor = th!=1.0;
 
-        for(size_t iMP=0; iMP<vpMapPoints.size(); iMP++)
-        {
+        tbb::parallel_for(tbb::blocked_range<size_t>(0,vpMapPoints.size(),grainsize), [&](const tbb::blocked_range<size_t>& r){
+            for(size_t iMP=r.begin(); iMP!=r.end(); ++iMP){
             MapPoint* pMP = vpMapPoints[iMP];
             if(!pMP->mbTrackInView && !pMP->mbTrackInViewR)
                 continue;
@@ -210,7 +210,9 @@ namespace ORB_SLAM3
                     }
                 }
             }
-        }
+        } //End of blocked_range
+        } //End Lambda PF
+        , tbb::simple_partitioner()); //End PF
         return nmatches;
     }
 
