@@ -3515,7 +3515,7 @@ void Tracking::SearchLocalPoints()
             unique_lock<mutex> lock(m);
             mCurrentFrame.mmProjectPoints[pMP->mnId] = cv::Point2f(pMP->mTrackProjX, pMP->mTrackProjY);
         }
-    }}, tbb::simple_partitioner());
+    }}, tbb::static_partitioner());
 #ifdef REGISTER_TIMES
     std::chrono::steady_clock::time_point time_End = std::chrono::steady_clock::now();
 
