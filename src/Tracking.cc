@@ -265,16 +265,16 @@ void Tracking::TrackStats2File()
         }
 
         double pf1 = 0.0;
-        if(!vdPF_Frustum.empty())
+        if(!vdSearchProjectionFrame.empty())
         {
-            pf1 = vdPF_Frustum[i];
+            pf1 = vdSearchProjectionFrame[i];
         }
 
         double pf2 = 0.0;
-        if(!vdSearchProjectionFrame.empty())
+        if(!vdPF_Frustum.empty())
         {
-            pf2 = vdSearchProjectionFrame[i];
-        }
+            pf2 = vdPF_Frustum[i];
+        }    
 
         double pf3 = 0.0;
         if(!vdPF_SearchProjectionLocalMP.empty())
@@ -283,7 +283,7 @@ void Tracking::TrackStats2File()
         }
 
         f << load_file << "," << stereo_rect << "," << resize_image << "," << vdORBExtract_ms[i] << "," << stereo_match << "," << imu_preint << ","
-          << vdPosePred_ms[i] <<  "," << vdLMTrack_ms[i] << "," << vdNewKF_ms[i] << "," << vdTrackTotal_ms[i] << "," << pf3 << "," << pf2<< "," << pf3 << endl;
+          << vdPosePred_ms[i] <<  "," << vdLMTrack_ms[i] << "," << vdNewKF_ms[i] << "," << vdTrackTotal_ms[i] << "," << pf1 << "," << pf2<< "," << pf3 << endl;
     }
 
     f.close();
