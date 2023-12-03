@@ -1867,7 +1867,7 @@ namespace ORB_SLAM3
                 }
             }
         }} //End lambda parallel_for
-    , tbb::simple_partitioner()); //End parallel_for
+    , tbb::static_partitioner()); //End parallel_for
 
         //Apply rotation consistency
         if(mbCheckOrientation)
