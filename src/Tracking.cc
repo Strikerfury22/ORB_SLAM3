@@ -265,16 +265,16 @@ void Tracking::TrackStats2File()
         }
 
         double pf1 = 0.0;
-        if(!vdPF_Frustum.empty())
+        if(!vdSearchProjectionFrame.empty())
         {
-            pf1 = vdPF_Frustum[i];
+            pf1 = vdSearchProjectionFrame[i];
         }
 
         double pf2 = 0.0;
-        if(!vdSearchProjectionFrame.empty())
+        if(!vdPF_Frustum.empty())
         {
-            pf2 = vdSearchProjectionFrame[i];
-        }
+            pf2 = vdPF_Frustum[i];
+        }    
 
         double pf3 = 0.0;
         if(!vdPF_SearchProjectionLocalMP.empty())
