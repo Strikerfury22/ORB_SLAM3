@@ -49,9 +49,6 @@ namespace ORB_SLAM3
         const bool bFactor = th!=1.0;
 
         tbb::parallel_for(tbb::blocked_range<size_t>(0,vpMapPoints.size(),grainsize), [&](const tbb::blocked_range<size_t>& r){
-            for(size_t iMP=r.begin(); iMP!=r.end(); ++iMP){
-        //std::cout << "_____________\nHELLO! \n";
-        tbb::parallel_for(tbb::blocked_range<size_t>(0,vpMapPoints.size(),grainsize), [&](const tbb::blocked_range<size_t>& r){
             //const int worker_index = tbb::this_task_arena::current_thread_index();
             //std::cout << worker_index << "\t" << r.begin() << "\t" << r.end() << "\n";
             for(size_t iMP=r.begin(); iMP!=r.end(); ++iMP){
