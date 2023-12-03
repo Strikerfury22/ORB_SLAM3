@@ -40,6 +40,11 @@ void LoadImages(const string &strPathLeft, const string &strPathRight, const str
 int main(int argc, char **argv)
 {  
     auto t = std::chrono::high_resolution_clock::now();
+    const int P = 24;//tbb::task_scheduler_init::default_num_threads();
+    int nt = 2*P;
+    auto mp = tbb::global_control::max_allowed_parallelism;
+    tbb::global_control gc(mp, nt);
+    tbb::task_arena a(nt);
     warmupTBB();
 
     std::cout << "START\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
@@ -143,12 +148,12 @@ int main(int argc, char **argv)
 
         int n_image = 0;
         
-
+        a.execute([&]() {
         tbb::parallel_pipeline(num_tokens_pipeline,
             //Dummy stage to stablish the order of the frames for the parallel stages
             tbb::make_filter<void, int>(tbb::filter_mode::serial_in_order,
             [&n_image, seq, &nImages](tbb::flow_control& fc) { 
-                if( n_image == nImages[seq] ) {
+                                if( n_image == nImages[seq] ) {
                     fc.stop();
                     return -1;
                 }
@@ -243,7 +248,7 @@ int main(int argc, char **argv)
 
                 ptimer.end_pipeline(n_image, 2);
             })); //END OF PIPELINE
-
+        });//End task arena
         if(seq < num_seq - 1)
         {
             cout << "Changing the dataset" << endl;
