@@ -2314,7 +2314,7 @@ void Tracking::Track()
 #endif
 
         // Update drawer
-        mpFrameDrawer->Update(this);
+        //mpFrameDrawer->Update(this);
         if(mCurrentFrame.isSet())
             mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.GetPose());
 
@@ -3510,11 +3510,11 @@ void Tracking::SearchLocalPoints()
             pMP->IncreaseVisible();
             nToMatch = true;
         }
-        if(pMP->mbTrackInView)
+        /*if(pMP->mbTrackInView)
         {
             unique_lock<mutex> lock(m);
             mCurrentFrame.mmProjectPoints[pMP->mnId] = cv::Point2f(pMP->mTrackProjX, pMP->mTrackProjY);
-        }
+        }*/
     }}, tbb::static_partitioner());
 #ifdef REGISTER_TIMES
     std::chrono::steady_clock::time_point time_End = std::chrono::steady_clock::now();
