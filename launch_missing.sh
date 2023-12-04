@@ -1,6 +1,6 @@
 #!/bin/bash
 
-list=(MH01 MH02 MH03 MH04 MH05 V101 V102 V103 V201 V202 V203)
+list=(MH01)
 
 if [ $# -lt 2 ] || [ $# -gt 3 ]; then
     echo "Need two or three arguments [results_dir n_runs (number_tokens_pipeline)]"
@@ -47,7 +47,7 @@ do
             if [ -z "$N_TOKENS_PIPELINE" ]; then #Not provided
                 $ORIGINAL_PATH/Examples/Stereo/stereo_euroc $ORIGINAL_PATH/Vocabulary/ORBvoc.txt $ORIGINAL_PATH/Examples/Stereo/EuRoC.yaml $DATASETS_PATH/EuRoC/$dataset $ORIGINAL_PATH/Examples/Stereo/EuRoC_TimeStamps/$dataset.txt data_orbslam > orbslam3_output.log 2>&1
             else #Provided
-                $ORIGINAL_PATH/Examples/Stereo/stereo_euroc 20 $N_TOKENS_PIPELINE $ORIGINAL_PATH/Vocabulary/ORBvoc.txt $ORIGINAL_PATH/Examples/Stereo/EuRoC.yaml $DATASETS_PATH/EuRoC/$dataset $ORIGINAL_PATH/Examples/Stereo/EuRoC_TimeStamps/$dataset.txt data_orbslam > orbslam3_output.log 2>&1
+                $ORIGINAL_PATH/Examples/Stereo/stereo_euroc 22 $N_TOKENS_PIPELINE $ORIGINAL_PATH/Vocabulary/ORBvoc.txt $ORIGINAL_PATH/Examples/Stereo/EuRoC.yaml $DATASETS_PATH/EuRoC/$dataset $ORIGINAL_PATH/Examples/Stereo/EuRoC_TimeStamps/$dataset.txt data_orbslam > orbslam3_output.log 2>&1
             fi
             T_ELAPSED=$(($SECONDS-$T_START))
 
