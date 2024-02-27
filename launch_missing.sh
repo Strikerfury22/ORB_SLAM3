@@ -1,6 +1,6 @@
 #!/bin/bash
 
-list=(MH01)
+list=(MH01 MH02 MH03 MH04 MH05 V101 V102 V103 V201 V202 V203)
 
 if [ $# -lt 2 ] || [ $# -gt 3 ]; then
     echo "Need two or three arguments [results_dir n_runs (number_tokens_pipeline)]"

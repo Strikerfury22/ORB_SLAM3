@@ -48,8 +48,10 @@ namespace ORB_SLAM3
 
         const bool bFactor = th!=1.0;
 
-        for(size_t iMP=0; iMP<vpMapPoints.size(); iMP++)
-        {
+        tbb::parallel_for(tbb::blocked_range<size_t>(0,vpMapPoints.size(),16), [&](const tbb::blocked_range<size_t>& r){
+            //const int worker_index = tbb::this_task_arena::current_thread_index();
+            //std::cout << worker_index << "\t" << r.begin() << "\t" << r.end() << "\n";
+            for(size_t iMP=r.begin(); iMP!=r.end(); ++iMP){
             MapPoint* pMP = vpMapPoints[iMP];
             if(!pMP->mbTrackInView && !pMP->mbTrackInViewR)
                 continue;
@@ -210,7 +212,9 @@ namespace ORB_SLAM3
                     }
                 }
             }
-        }
+        } //End of blocked_range
+        } //End Lambda PF
+        , tbb::static_partitioner()); //End PF
         return nmatches;
     }
 
@@ -1699,8 +1703,8 @@ namespace ORB_SLAM3
         const bool bForward = tlc(2)>CurrentFrame.mb && !bMono;
         const bool bBackward = -tlc(2)>CurrentFrame.mb && !bMono;
 
-        for(int i=0; i<LastFrame.N; i++)
-        {
+        tbb::parallel_for(tbb::blocked_range<size_t>(0,LastFrame.N,4), [&](const tbb::blocked_range<size_t>& r){
+        for(size_t i=r.begin(); i!=r.end(); ++i){
             MapPoint* pMP = LastFrame.mvpMapPoints[i];
             if(pMP)
             {
@@ -1866,7 +1870,8 @@ namespace ORB_SLAM3
                     }
                 }
             }
-        }
+        }} //End lambda parallel_for
+    , tbb::static_partitioner()); //End parallel_for
 
         //Apply rotation consistency
         if(mbCheckOrientation)
