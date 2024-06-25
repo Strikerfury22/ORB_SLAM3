@@ -5,9 +5,15 @@ if [ $# -lt 2 ]; then
 	exit 1
 fi
 
+if [ $# -eq 3 ]; then
+	extResDir=$3
+else
+	extResDir="_default"
+fi
+
 dataset=$1
 N_TOKENS_PIPELINE=$2
-res_directory=Results/${dataset}_${N_TOKENS_PIPELINE}
+res_directory=Results/${dataset}_${N_TOKENS_PIPELINE}_${extResDir}
 ORIGINAL_PATH=$(pwd)
 DATASETS_PATH=/mnt/extra/jferrer/Datasets
 
