@@ -120,14 +120,15 @@ Frame::Frame(const int n_img, const cv::Mat &imLeft, const cv::Mat &imRight, con
     std::chrono::steady_clock::time_point time_StartExtORB = std::chrono::steady_clock::now();
 #endif
     
-    tbb::parallel_invoke(
-        [this, &imLeft]() {Frame::ExtractORB(0, imLeft, 0, 0);},
-        [this, &imRight]() {Frame::ExtractORB(1, imRight, 0, 0);}
-    );
+    //tbb::parallel_invoke(
+    //    [this, &imLeft]() {Frame::ExtractORB(0, imLeft, 0, 0);},
+    //    [this, &imRight]() {Frame::ExtractORB(1, imRight, 0, 0);}
+    //);
 
-    // thread threadLeft(&Frame::ExtractORB,this,0,imLeft,0,0);
+    thread threadLeft(&Frame::ExtractORB,this,0,imLeft,0,0);
     // thread threadRight(&Frame::ExtractORB,this,1,imRight,0,0);
-    // threadLeft.join();
+    this->ExtractORB(1, imRight, 0, 0);
+    threadLeft.join();
     // threadRight.join();
 
 #ifdef REGISTER_TIMES

@@ -28,7 +28,7 @@ do
   mkdir -p $res_directory
   cd $res_directory
   T_START=$SECONDS
-  $ORIGINAL_PATH/Examples/Stereo/stereo_euroc $N_TOKENS_PIPELINE 27 $ORIGINAL_PATH/Vocabulary/ORBvoc.txt $ORIGINAL_PATH/Examples/Stereo/EuRoC.yaml $DATASETS_PATH/$dataset $ORIGINAL_PATH/Examples/Stereo/EuRoC_TimeStamps/$dataset.txt data_orbslam > orbslam3_output.log 2>&1
+  $ORIGINAL_PATH/Examples/Stereo/stereo_euroc_tbb_parallel_invoke $N_TOKENS_PIPELINE 27 $ORIGINAL_PATH/Vocabulary/ORBvoc.txt $ORIGINAL_PATH/Examples/Stereo/EuRoC.yaml $DATASETS_PATH/$dataset $ORIGINAL_PATH/Examples/Stereo/EuRoC_TimeStamps/$dataset.txt data_orbslam > orbslam3_output.log 2>&1
   T_ELAPSED=$(($SECONDS-$T_START))
   if [ -f data_orbslam_f.txt ]; then
     echo $T_ELAPSED
