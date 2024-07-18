@@ -14,6 +14,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
 
 # Para que se tomen medidas temporales
 add_definitions(-DMEDIR_TIEMPO_SECCIONES)
+add_definitions(-DREGISTER_TIMES)
 #
 
 # Check C++11 or C++0x support
