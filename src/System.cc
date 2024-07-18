@@ -371,6 +371,8 @@ Frame System::GenerateFrame(const int n_image, const cv::Mat &imLeft, const cv::
         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 
         double tr = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
+    #else
+        double tr = 0;
     #endif
 
     if (mSensor == System::IMU_STEREO)
