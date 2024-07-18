@@ -1623,7 +1623,9 @@ Frame Tracking::BuildFrame(const int n_image, const cv::Mat &imRectLeft,const cv
     //cout << "Incoming frame ended" << endl;
 
     //¿Deberia comentar la asignacion de tr en caso de no tener REGISTER_TIMES definido?
+#ifdef REGISTER_TIMES
     retFrame.mTimeRectify = tr;
+#endif
     retFrame.mNameFile = filename;
     retFrame.mnDataset = mnNumDataset;
 
