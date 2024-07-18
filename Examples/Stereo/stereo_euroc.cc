@@ -161,9 +161,9 @@ int main(int argc, char **argv)
             [&SLAM, &vstrImageLeft, &vstrImageRight, &imgsLeft, &imgsRight, seq, &ptimer, &vTimesTrack, &times_load, &roulette_size](int n_image) {
                 ptimer.start_pipeline(n_image, 0);
 
-
+                #ifdef MEDIR_TIEMPO_SECCIONES
                 std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-
+                #endif
                 
                 cv::Mat imLeft = cv::imread(vstrImageLeft[seq][n_image],cv::IMREAD_UNCHANGED); //,cv::IMREAD_UNCHANGED);
                 cv::Mat imRight = cv::imread(vstrImageRight[seq][n_image],cv::IMREAD_UNCHANGED); //,cv::IMREAD_UNCHANGED);
@@ -185,7 +185,7 @@ int main(int argc, char **argv)
                 imgsLeft[n_image % roulette_size] = imLeft;
                 imgsRight[n_image % roulette_size] = imRight;
 
-
+                #ifdef MEDIR_TIEMPO_SECCIONES
                 std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 
                 double t_load = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
@@ -193,6 +193,7 @@ int main(int argc, char **argv)
 
                 #ifdef REGISTER_TIMES
                     times_load[n_image % roulette_size] = t_load;
+                #endif
                 #endif
 
                 ptimer.end_pipeline(n_image, 0);
@@ -202,19 +203,20 @@ int main(int argc, char **argv)
             tbb::make_filter<int, int>(tbb::filter_mode::parallel,
             [&SLAM, &frames, &ptimer, &seq, &vTimestampsCam, &vstrImageLeft, &imgsLeft, &imgsRight, &vTimesTrack, &extractorsLeft, &extractorsRight, &roulette_size](int n_image) {
                 ptimer.start_pipeline(n_image, 1);
-
+                
+                #ifdef MEDIR_TIEMPO_SECCIONES
                 std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-
+                #endif
                 frames[n_image % roulette_size] = SLAM.GenerateFrame(n_image, imgsLeft[n_image % roulette_size], 
                     imgsRight[n_image % roulette_size], extractorsLeft[n_image % roulette_size], extractorsRight[n_image % roulette_size],
                     vTimestampsCam[seq][n_image], vector<ORB_SLAM3::IMU::Point>(), vstrImageLeft[seq][n_image]);
 
-
+                #ifdef MEDIR_TIEMPO_SECCIONES
                 std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 
                 double t_extract = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
                 vTimesTrack[n_image] += t_extract;
-                    
+                #endif
                 ptimer.end_pipeline(n_image, 1);
                 return n_image;
             }) &
@@ -224,23 +226,26 @@ int main(int argc, char **argv)
                 ptimer.start_pipeline(n_image, 2);
 
 
+                #ifdef MEDIR_TIEMPO_SECCIONES
                 std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-
+                #endif
 
                 SLAM.TrackFrame(frames[n_image % roulette_size]);
 
+                #ifdef MEDIR_TIEMPO_SECCIONES
                 std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 
                 double t_track = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
                 vTimesTrack[n_image] += t_track;
                 double ttrack = vTimesTrack[n_image]; //Doesn't work????
-                    
-            #ifdef REGISTER_TIMES
-                    SLAM.InsertLoadTime(times_load[n_image % roulette_size]);
-                    SLAM.InsertTrackTime(ttrack);
-                    SLAM.InsertVoidFrameTime();
-            #endif
+                
 
+                #ifdef REGISTER_TIMES
+                        SLAM.InsertLoadTime(times_load[n_image % roulette_size]);
+                        SLAM.InsertTrackTime(ttrack);
+                        SLAM.InsertVoidFrameTime();
+                #endif
+                #endif
 
                 ptimer.end_pipeline(n_image, 2);
             })); //END OF PIPELINE
@@ -251,15 +256,18 @@ int main(int argc, char **argv)
 
             SLAM.ChangeDataset();
         }
+        #ifdef MEDIR_TIEMPO_SECCIONES
         t = std::chrono::high_resolution_clock::now();
         std::cout << "ALGO_END\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
+        #endif
     }
     // Stop all threads
+    #ifdef MEDIR_TIEMPO_SECCIONES
     SLAM.Shutdown();
     t = std::chrono::high_resolution_clock::now();
 
     ptimer.printStageTimesToFile(); //Print outside of sequence. If sequences are used, should use several ptimers on a vector.
-
+    #endif
     // Save camera trajectory
     if (bFileName)
     {
@@ -273,8 +281,9 @@ int main(int argc, char **argv)
         SLAM.SaveTrajectoryEuRoC("CameraTrajectory.txt");
         SLAM.SaveKeyFrameTrajectoryEuRoC("KeyFrameTrajectory.txt");
     }
-    
+    #ifdef MEDIR_TIEMPO_SECCIONES
     std::cout << "END\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
+    #endif
     return 0;
 }
 
