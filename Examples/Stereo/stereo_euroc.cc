@@ -85,7 +85,7 @@ int main(int argc, char **argv)
     #ifdef REGISTER_TIMES
         double *times_load = new double[roulette_size]; //I need to keep it here to insert it in the sequential Track stage so they are in order
     #else
-        double *times_load = NULL
+        double *times_load = NULL;
     #endif
     int tot_images = 0;
     for (seq = 0; seq<num_seq; seq++)
