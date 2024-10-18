@@ -298,6 +298,9 @@ void Tracking::PrintTimeStats()
 
     ofstream f;
     f.open("ExecMean.txt");
+    ofstream record;
+    record.open("Muestras latencia.txt");
+    record << fixed;
     f << fixed;
     //Report the mean and std of each one
     std::cout << std::endl << " TIME STATS in ms (mean$\\pm$std)" << std::endl;
@@ -332,12 +335,13 @@ void Tracking::PrintTimeStats()
         std::cout << "Image Resize: " << average << "$\\pm$" << deviation << std::endl;
         f << "Image Resize: " << average << "$\\pm$" << deviation << std::endl;
     }
-
-    average = calcAverage(vdORBExtract_ms);
-    deviation = calcDeviation(vdORBExtract_ms, average);
-    std::cout << "ORB Extraction: " << average << "$\\pm$" << deviation << std::endl;
-    f << "ORB Extraction: " << average << "$\\pm$" << deviation << std::endl;
-
+     if(!vdORBExtract_ms.empty())
+    {
+        average = calcAverage(vdORBExtract_ms);
+        deviation = calcDeviation(vdORBExtract_ms, average);
+        std::cout << "ORB Extraction: " << average << "$\\pm$" << deviation << std::endl;
+        f << "ORB Extraction: " << average << "$\\pm$" << deviation << std::endl;
+    }
     if(!vdStereoMatch_ms.empty())
     {
         average = calcAverage(vdStereoMatch_ms);
@@ -353,42 +357,58 @@ void Tracking::PrintTimeStats()
         std::cout << "Start Tracking: " << average << "$\\pm$" << deviation << std::endl;
         f << "Start Tracking: " << average << "$\\pm$" << deviation << std::endl;
     }
-
-    average = calcAverage(vdPosePred_ms);
-    deviation = calcDeviation(vdPosePred_ms, average);
-    std::cout << "Pose Prediction: " << average << "$\\pm$" << deviation << std::endl;
-    f << "Pose Prediction: " << average << "$\\pm$" << deviation << std::endl;
-
-    average = calcAverage(vdLMTrack_ms);
-    deviation = calcDeviation(vdLMTrack_ms, average);
-    std::cout << "LM Track: " << average << "$\\pm$" << deviation << std::endl;
-    f << "LM Track: " << average << "$\\pm$" << deviation << std::endl;
-
-    average = calcAverage(vdNewKF_ms);
-    deviation = calcDeviation(vdNewKF_ms, average);
-    std::cout << "New KF decision: " << average << "$\\pm$" << deviation << std::endl;
-    f << "New KF decision: " << average << "$\\pm$" << deviation << std::endl;
-
-    average = calcAverage(vdTrackTotal_ms);
-    deviation = calcDeviation(vdTrackTotal_ms, average);
-    std::cout << "Total Tracking: " << average << "$\\pm$" << deviation << std::endl;
-    f << "Total Tracking: " << average << "$\\pm$" << deviation << std::endl;
-    
-    average = calcAverage(vdSearchProjectionFrame);
-    deviation = calcDeviation(vdSearchProjectionFrame, average);
-    std::cout << "PF1: " << average << "$\\pm$" << deviation << std::endl;
-    f << "PF1: " << average << "$\\pm$" << deviation << std::endl;
-
-    average = calcAverage(vdPF_Frustum);
-    deviation = calcDeviation(vdPF_Frustum, average);
-    std::cout << "PF2: " << average << "$\\pm$" << deviation << std::endl;
-    f << "PF2: " << average << "$\\pm$" << deviation << std::endl;
-
-    average = calcAverage(vdPF_SearchProjectionLocalMP);
-    deviation = calcDeviation(vdPF_SearchProjectionLocalMP, average);
-    std::cout << "PF3: " << average << "$\\pm$" << deviation << std::endl;
-    f << "PF3: " << average << "$\\pm$" << deviation << std::endl;
-
+    if(!vdInitTracking_ms.empty())
+    {
+        average = calcAverage(vdPosePred_ms);
+        deviation = calcDeviation(vdPosePred_ms, average);
+        std::cout << "Pose Prediction: " << average << "$\\pm$" << deviation << std::endl;
+        f << "Pose Prediction: " << average << "$\\pm$" << deviation << std::endl;
+    }
+    if(!vdInitTracking_ms.empty())
+    {
+        average = calcAverage(vdLMTrack_ms);
+        deviation = calcDeviation(vdLMTrack_ms, average);
+        std::cout << "LM Track: " << average << "$\\pm$" << deviation << std::endl;
+        f << "LM Track: " << average << "$\\pm$" << deviation << std::endl;
+    }
+    if(!vdInitTracking_ms.empty())
+    {
+        average = calcAverage(vdNewKF_ms);
+        deviation = calcDeviation(vdNewKF_ms, average);
+        std::cout << "New KF decision: " << average << "$\\pm$" << deviation << std::endl;
+        f << "New KF decision: " << average << "$\\pm$" << deviation << std::endl;
+    }
+    if(!vdTrackTotal_ms.empty())
+    {
+        average = calcAverage(vdTrackTotal_ms);
+        deviation = calcDeviation(vdTrackTotal_ms, average);
+        std::cout << "Total Tracking: " << average << "$\\pm$" << deviation << std::endl;
+        f << "Total Tracking: " << average << "$\\pm$" << deviation << std::endl;
+        for (auto value : vdTrackTotal_ms){
+            record << value << std::endl;
+        }
+    }
+    if(!vdInitTracking_ms.empty())
+    {
+        average = calcAverage(vdSearchProjectionFrame);
+        deviation = calcDeviation(vdSearchProjectionFrame, average);
+        std::cout << "PF1: " << average << "$\\pm$" << deviation << std::endl;
+        f << "PF1: " << average << "$\\pm$" << deviation << std::endl;
+    }
+    if(!vdPF_Frustum.empty())
+    {
+        average = calcAverage(vdPF_Frustum);
+        deviation = calcDeviation(vdPF_Frustum, average);
+        std::cout << "PF2: " << average << "$\\pm$" << deviation << std::endl;
+        f << "PF2: " << average << "$\\pm$" << deviation << std::endl;
+    }
+    if(!vdPF_SearchProjectionLocalMP.empty())
+    {
+        average = calcAverage(vdPF_SearchProjectionLocalMP);
+        deviation = calcDeviation(vdPF_SearchProjectionLocalMP, average);
+        std::cout << "PF3: " << average << "$\\pm$" << deviation << std::endl;
+        f << "PF3: " << average << "$\\pm$" << deviation << std::endl;
+    }
     // Local Mapping time stats
     std::cout << std::endl << std::endl << std::endl;
     std::cout << "Local Mapping" << std::endl << std::endl;
@@ -1561,8 +1581,10 @@ Sophus::SE3f Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat 
     mCurrentFrame.mnDataset = mnNumDataset;
 
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
     vdORBExtract_ms.push_back(mCurrentFrame.mTimeORB_Ext);
     vdStereoMatch_ms.push_back(mCurrentFrame.mTimeStereoMatch);
+    #endif
 #endif
 
     //cout << "Tracking start" << endl;
@@ -1624,7 +1646,9 @@ Frame Tracking::BuildFrame(const int n_image, const cv::Mat &imRectLeft,const cv
 
     //¿Deberia comentar la asignacion de tr en caso de no tener REGISTER_TIMES definido?
 #ifdef REGISTER_TIMES
-    retFrame.mTimeRectify = tr;
+    #ifdef REGISTER_SECTION_LATENCY
+        retFrame.mTimeRectify = tr;
+    #endif
 #endif
     retFrame.mNameFile = filename;
     retFrame.mnDataset = mnNumDataset;
@@ -1669,7 +1693,9 @@ Sophus::SE3f Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, co
     mCurrentFrame.mnDataset = mnNumDataset;
 
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
     vdORBExtract_ms.push_back(mCurrentFrame.mTimeORB_Ext);
+    #endif
 #endif
 
     Track();
@@ -1720,7 +1746,9 @@ Sophus::SE3f Tracking::GrabImageMonocular(const cv::Mat &im, const double &times
     mCurrentFrame.mnDataset = mnNumDataset;
 
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
     vdORBExtract_ms.push_back(mCurrentFrame.mTimeORB_Ext);
+    #endif
 #endif
 
     lastID = mCurrentFrame.mnId;
@@ -2004,10 +2032,12 @@ void Tracking::Track()
     }
 
     #ifdef REGISTER_TIMES
+        #ifdef REGISTER_SECTION_LATENCY
         std::chrono::steady_clock::time_point time_EndInitTracking = std::chrono::steady_clock::now();
 
         double timeInitTracking = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndInitTracking - start_tracking).count();
         vdInitTracking_ms.push_back(timeInitTracking);
+        #endif
     #endif
 
 
@@ -2041,7 +2071,9 @@ void Tracking::Track()
         bool bOK;
 
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
         std::chrono::steady_clock::time_point time_StartPosePred = std::chrono::steady_clock::now();
+    #endif
 #endif
 
         // Initial camera pose estimation using motion model or relocalization (if tracking is lost)
@@ -2224,15 +2256,19 @@ void Tracking::Track()
             mCurrentFrame.mpReferenceKF = mpReferenceKF;
 
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
         std::chrono::steady_clock::time_point time_EndPosePred = std::chrono::steady_clock::now();
 
         double timePosePred = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndPosePred - time_StartPosePred).count();
         vdPosePred_ms.push_back(timePosePred);
+    #endif
 #endif
 
 
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
         std::chrono::steady_clock::time_point time_StartLMTrack = std::chrono::steady_clock::now();
+    #endif
 #endif
         // If we have an initial estimation of the camera pose and matching. Track the local map.
         if(!mbOnlyTracking)
@@ -2306,13 +2342,17 @@ void Tracking::Track()
         }
 
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
         std::chrono::steady_clock::time_point time_EndLMTrack = std::chrono::steady_clock::now();
 
         double timeLMTrack = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndLMTrack - time_StartLMTrack).count();
         vdLMTrack_ms.push_back(timeLMTrack);
+    #endif
 #endif
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
             std::chrono::steady_clock::time_point time_StartNewKF = std::chrono::steady_clock::now();
+    #endif
 #endif
 
         // Update drawer
@@ -2377,10 +2417,12 @@ void Tracking::Track()
                     mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
             }
             #ifdef REGISTER_TIMES
-            std::chrono::steady_clock::time_point time_EndNewKF = std::chrono::steady_clock::now();
+                #ifdef REGISTER_SECTION_LATENCY
+                std::chrono::steady_clock::time_point time_EndNewKF = std::chrono::steady_clock::now();
 
-            double timeNewKF = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndNewKF - time_StartNewKF).count();
-            vdNewKF_ms.push_back(timeNewKF);
+                double timeNewKF = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndNewKF - time_StartNewKF).count();
+                vdNewKF_ms.push_back(timeNewKF);
+                #endif
 #endif
         }
 
@@ -3001,16 +3043,20 @@ bool Tracking::TrackWithMotionModel()
         th=15;
     
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
     std::chrono::steady_clock::time_point time_Start = std::chrono::steady_clock::now();
+    #endif
 #endif
 
     int nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR || mSensor==System::IMU_MONOCULAR, grainsize);
 
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
     std::chrono::steady_clock::time_point time_End = std::chrono::steady_clock::now();
 
     double t = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_End - time_Start).count();
     vdSearchProjectionFrame.push_back(t);
+    #endif
 #endif
 
     // If few matches, uses a wider window search
@@ -3518,14 +3564,18 @@ void Tracking::SearchLocalPoints()
         }*/
     }}, tbb::static_partitioner());
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
     std::chrono::steady_clock::time_point time_End = std::chrono::steady_clock::now();
 
     double t = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_End - time_Start).count();
     vdPF_Frustum.push_back(t);
+    #endif
 #endif
 
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
     time_Start = std::chrono::steady_clock::now();
+    #endif
 #endif
 
     if(nToMatch)
@@ -3558,10 +3608,12 @@ void Tracking::SearchLocalPoints()
         int matches = matcher.SearchByProjection(mCurrentFrame, mvpLocalMapPoints, th, mpLocalMapper->mbFarPoints, mpLocalMapper->mThFarPoints, grainsize);
     }
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
     time_End = std::chrono::steady_clock::now();
 
     t = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_End - time_Start).count();
     vdPF_SearchProjectionLocalMP.push_back(t);
+    #endif
 #endif
 }
 

@@ -250,7 +250,9 @@ Sophus::SE3f System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, 
     }
 
     #ifdef REGISTER_TIMES
+        #ifdef REGISTER_SECTION_LATENCY
             std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+        #endif
     #endif
 
     cv::Mat imLeftToFeed, imRightToFeed;
@@ -273,10 +275,12 @@ Sophus::SE3f System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, 
     }
 
     #ifdef REGISTER_TIMES
+        #ifdef REGISTER_SECTION_LATENCY
         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 
         double tr = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
         InsertRectTime(tr);
+        #endif
     #endif
 
     // Check mode change
@@ -345,7 +349,9 @@ Frame System::GenerateFrame(const int n_image, const cv::Mat &imLeft, const cv::
     }
 
     #ifdef REGISTER_TIMES
+        #ifdef REGISTER_SECTION_LATENCY
             std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+        #endif
     #endif
 
     cv::Mat imLeftToFeed, imRightToFeed;
@@ -368,9 +374,13 @@ Frame System::GenerateFrame(const int n_image, const cv::Mat &imLeft, const cv::
     }
 
     #ifdef REGISTER_TIMES
+        #ifdef REGISTER_SECTION_LATENCY
         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 
         double tr = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
+        #else
+        double tr = 0;
+        #endif
     #else
         double tr = 0;
     #endif
@@ -389,7 +399,9 @@ Frame System::GenerateFrame(const int n_image, const cv::Mat &imLeft, const cv::
 Sophus::SE3f System::TrackFrame(Frame& frame)
 {
     #ifdef REGISTER_TIMES
+        #ifdef REGISTER_SECTION_LATENCY
         mpTracker->start_tracking = std::chrono::steady_clock::now();
+        #endif
     #endif
     // Check mode change
     {
@@ -433,9 +445,11 @@ Sophus::SE3f System::TrackFrame(Frame& frame)
 
     //Times need to be pushed here because this function is sequential in the pipeline
     #ifdef REGISTER_TIMES
+        #ifdef REGISTER_SECTION_LATENCY
         mpTracker->vdORBExtract_ms.push_back(frame.mTimeORB_Ext);
         mpTracker->vdStereoMatch_ms.push_back(frame.mTimeStereoMatch);
         mpTracker->vdRectStereo_ms.push_back(frame.mTimeRectify);
+        #endif
     #endif
 
     mpTracker->mCurrentFrame = frame;
@@ -680,7 +694,9 @@ void System::Shutdown()
         pangolin::BindToContext("ORB-SLAM2: Map Viewer");*/
 
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
     mpTracker->PrintTimeStats();
+    #endif
 #endif
 
 

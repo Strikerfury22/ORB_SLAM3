@@ -164,7 +164,9 @@ int main(int argc, char **argv)
                 ptimer.start_pipeline(n_image, 0);
 
                 #ifdef MEDIR_TIEMPO_SECCIONES
-                std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+                    #ifdef REGISTER_SECTION_LATENCY
+                        std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+                    #endif
                 #endif
                 
                 cv::Mat imLeft = cv::imread(vstrImageLeft[seq][n_image],cv::IMREAD_UNCHANGED); //,cv::IMREAD_UNCHANGED);
@@ -188,13 +190,17 @@ int main(int argc, char **argv)
                 imgsRight[n_image % roulette_size] = imRight;
 
                 #ifdef MEDIR_TIEMPO_SECCIONES
-                std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+                    #ifdef REGISTER_SECTION_LATENCY
+                        std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 
-                double t_load = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
-                vTimesTrack[n_image] = t_load;
+                        double t_load = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
+                        vTimesTrack[n_image] = t_load;
+                    #endif
 
                 #ifdef REGISTER_TIMES
-                    times_load[n_image % roulette_size] = t_load;
+                    #ifdef REGISTER_SECTION_LATENCY
+                        times_load[n_image % roulette_size] = t_load;
+                    #endif
                 #endif
                 #endif
 
@@ -207,17 +213,21 @@ int main(int argc, char **argv)
                 ptimer.start_pipeline(n_image, 1);
                 
                 #ifdef MEDIR_TIEMPO_SECCIONES
-                std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+                    #ifdef REGISTER_SECTION_LATENCY
+                        std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+                    #endif
                 #endif
                 frames[n_image % roulette_size] = SLAM.GenerateFrame(n_image, imgsLeft[n_image % roulette_size], 
                     imgsRight[n_image % roulette_size], extractorsLeft[n_image % roulette_size], extractorsRight[n_image % roulette_size],
                     vTimestampsCam[seq][n_image], vector<ORB_SLAM3::IMU::Point>(), vstrImageLeft[seq][n_image]);
 
                 #ifdef MEDIR_TIEMPO_SECCIONES
-                std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+                    #ifdef REGISTER_SECTION_LATENCY
+                        std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 
-                double t_extract = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
-                vTimesTrack[n_image] += t_extract;
+                        double t_extract = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
+                        vTimesTrack[n_image] += t_extract;
+                    #endif
                 #endif
                 ptimer.end_pipeline(n_image, 1);
                 return n_image;
@@ -229,23 +239,31 @@ int main(int argc, char **argv)
 
 
                 #ifdef MEDIR_TIEMPO_SECCIONES
-                std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+                    #ifdef REGISTER_TOTAL_LATENCY
+                        std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+                    #endif
                 #endif
 
                 SLAM.TrackFrame(frames[n_image % roulette_size]);
 
                 #ifdef MEDIR_TIEMPO_SECCIONES
-                std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+                    #ifdef REGISTER_TOTAL_LATENCY
+                        std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 
-                double t_track = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
-                vTimesTrack[n_image] += t_track;
-                double ttrack = vTimesTrack[n_image]; //Doesn't work????
-                
+                        double t_track = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
+                        vTimesTrack[n_image] += t_track;
+                        double ttrack = vTimesTrack[n_image]; //Doesn't work????
+                    #endif
 
                 #ifdef REGISTER_TIMES
-                        SLAM.InsertLoadTime(times_load[n_image % roulette_size]);
+                        
+                    #ifdef REGISTER_TOTAL_LATENCY
                         SLAM.InsertTrackTime(ttrack);
+                    #endif
+                    #ifdef REGISTER_SECTION_LATENCY
+                        SLAM.InsertLoadTime(times_load[n_image % roulette_size]);
                         SLAM.InsertVoidFrameTime();
+                    #endif
                 #endif
                 #endif
 
@@ -264,11 +282,12 @@ int main(int argc, char **argv)
         #endif
     }
     // Stop all threads
-    #ifdef MEDIR_TIEMPO_SECCIONES
     SLAM.Shutdown();
-    t = std::chrono::high_resolution_clock::now();
 
-    ptimer.printStageTimesToFile(); //Print outside of sequence. If sequences are used, should use several ptimers on a vector.
+    
+    #ifdef MEDIR_TIEMPO_SECCIONES//
+        t = std::chrono::high_resolution_clock::now();
+        ptimer.printStageTimesToFile(); //Print outside of sequence. If sequences are used, should use several ptimers on a vector.
     #endif
     // Save camera trajectory
     if (bFileName)
@@ -284,7 +303,7 @@ int main(int argc, char **argv)
         SLAM.SaveKeyFrameTrajectoryEuRoC("KeyFrameTrajectory.txt");
     }
     #ifdef MEDIR_TIEMPO_SECCIONES
-    std::cout << "END\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
+        std::cout << "END\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
     #endif
     return 0;
 }

@@ -45,8 +45,10 @@ LocalMapping::LocalMapping(System* pSys, Atlas *pAtlas, const float bMonocular, 
     mNumKFCulling=0;
 
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
     nLBA_exec = 0;
     nLBA_abort = 0;
+    #endif
 #endif
 
 }
@@ -74,27 +76,33 @@ void LocalMapping::Run()
         if(CheckNewKeyFrames() && !mbBadImu)
         {
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
             double timeLBA_ms = 0;
             double timeKFCulling_ms = 0;
 
             std::chrono::steady_clock::time_point time_StartProcessKF = std::chrono::steady_clock::now();
+    #endif
 #endif
             // BoW conversion and insertion in Map
             ProcessNewKeyFrame();
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
             std::chrono::steady_clock::time_point time_EndProcessKF = std::chrono::steady_clock::now();
 
             double timeProcessKF = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndProcessKF - time_StartProcessKF).count();
             vdKFInsert_ms.push_back(timeProcessKF);
+    #endif
 #endif
 
             // Check recent MapPoints
             MapPointCulling();
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
             std::chrono::steady_clock::time_point time_EndMPCulling = std::chrono::steady_clock::now();
 
             double timeMPCulling = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndMPCulling - time_EndProcessKF).count();
             vdMPCulling_ms.push_back(timeMPCulling);
+    #endif
 #endif
 
             // Triangulate new MapPoints
@@ -109,10 +117,12 @@ void LocalMapping::Run()
             }
 
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
             std::chrono::steady_clock::time_point time_EndMPCreation = std::chrono::steady_clock::now();
 
             double timeMPCreation = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndMPCreation - time_EndMPCulling).count();
             vdMPCreation_ms.push_back(timeMPCreation);
+    #endif
 #endif
 
             bool b_doneLBA = false;
@@ -157,6 +167,7 @@ void LocalMapping::Run()
 
                 }
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
                 std::chrono::steady_clock::time_point time_EndLBA = std::chrono::steady_clock::now();
 
                 if(b_doneLBA)
@@ -174,7 +185,7 @@ void LocalMapping::Run()
                     vnLBA_KFfixed.push_back(num_FixedKF_BA);
                     vnLBA_MPs.push_back(num_MPs_BA);
                 }
-
+    #endif
 #endif
 
                 // Initialize IMU here
@@ -191,10 +202,12 @@ void LocalMapping::Run()
                 KeyFrameCulling();
 
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
                 std::chrono::steady_clock::time_point time_EndKFCulling = std::chrono::steady_clock::now();
 
                 timeKFCulling_ms = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndKFCulling - time_EndLBA).count();
                 vdKFCulling_ms.push_back(timeKFCulling_ms);
+    #endif
 #endif
 
                 if ((mTinit<50.0f) && mbInertial)
@@ -243,17 +256,21 @@ void LocalMapping::Run()
             }
 
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
             vdLBASync_ms.push_back(timeKFCulling_ms);
             vdKFCullingSync_ms.push_back(timeKFCulling_ms);
+    #endif
 #endif
 
             mpLoopCloser->InsertKeyFrame(mpCurrentKeyFrame);
 
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
             std::chrono::steady_clock::time_point time_EndLocalMap = std::chrono::steady_clock::now();
 
             double timeLocalMap = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndLocalMap - time_StartProcessKF).count();
             vdLMTotal_ms.push_back(timeLocalMap);
+    #endif
 #endif
         }
         else if(Stop() && !mbBadImu)

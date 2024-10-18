@@ -45,8 +45,10 @@ cv::BFMatcher Frame::BFmatcher = cv::BFMatcher(cv::NORM_HAMMING);
 Frame::Frame(): mpcpi(NULL), mpImuPreintegrated(NULL), mpPrevFrame(NULL), mpImuPreintegratedFrame(NULL), mpReferenceKF(static_cast<KeyFrame*>(NULL)), mbIsSet(false), mbImuPreintegrated(false), mbHasPose(false), mbHasVelocity(false)
 {
 #ifdef REGISTER_TIMES
-    mTimeStereoMatch = 0;
-    mTimeORB_Ext = 0;
+    #ifdef REGISTER_SECTION_LATENCY
+        mTimeStereoMatch = 0;
+        mTimeORB_Ext = 0;
+    #endif
 #endif
 }
 
@@ -92,8 +94,10 @@ Frame::Frame(const Frame &frame)
     mmMatchedInImage = frame.mmMatchedInImage;
 
 #ifdef REGISTER_TIMES
-    mTimeStereoMatch = frame.mTimeStereoMatch;
-    mTimeORB_Ext = frame.mTimeORB_Ext;
+    #ifdef REGISTER_SECTION_LATENCY
+        mTimeStereoMatch = frame.mTimeStereoMatch;
+        mTimeORB_Ext = frame.mTimeORB_Ext;
+    #endif
 #endif
 }
 
@@ -117,7 +121,9 @@ Frame::Frame(const int n_img, const cv::Mat &imLeft, const cv::Mat &imRight, con
 
     // ORB extraction
 #ifdef REGISTER_TIMES
-    std::chrono::steady_clock::time_point time_StartExtORB = std::chrono::steady_clock::now();
+    #ifdef REGISTER_SECTION_LATENCY
+      std::chrono::steady_clock::time_point time_StartExtORB = std::chrono::steady_clock::now();
+    #endif
 #endif
     
     //tbb::parallel_invoke(
@@ -132,16 +138,20 @@ Frame::Frame(const int n_img, const cv::Mat &imLeft, const cv::Mat &imRight, con
     // threadRight.join();
 
 #ifdef REGISTER_TIMES
-    std::chrono::steady_clock::time_point time_EndExtORB = std::chrono::steady_clock::now();
+    #ifdef REGISTER_SECTION_LATENCY
+        std::chrono::steady_clock::time_point time_EndExtORB = std::chrono::steady_clock::now();
 
-    mTimeORB_Ext = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndExtORB - time_StartExtORB).count();
+        mTimeORB_Ext = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndExtORB - time_StartExtORB).count();
+    #endif
 #endif
 
     N = mvKeys.size();
     if(mvKeys.empty())
         return;
 #ifdef REGISTER_TIMES
-    std::chrono::steady_clock::time_point time_StartStereoMatches = std::chrono::steady_clock::now();
+    #ifdef REGISTER_SECTION_LATENCY
+     std::chrono::steady_clock::time_point time_StartStereoMatches = std::chrono::steady_clock::now();
+    #endif
 #endif
     UndistortKeyPoints();
 
@@ -200,9 +210,11 @@ Frame::Frame(const int n_img, const cv::Mat &imLeft, const cv::Mat &imRight, con
 
     AssignFeaturesToGrid();
     #ifdef REGISTER_TIMES
-    std::chrono::steady_clock::time_point time_EndStereoMatches = std::chrono::steady_clock::now();
+        #ifdef REGISTER_SECTION_LATENCY
+        std::chrono::steady_clock::time_point time_EndStereoMatches = std::chrono::steady_clock::now();
 
-    mTimeStereoMatch = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndStereoMatches - time_StartStereoMatches).count();
+        mTimeStereoMatch = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndStereoMatches - time_StartStereoMatches).count();
+        #endif
 #endif
 }
 
@@ -226,13 +238,17 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
 
     // ORB extraction
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
     std::chrono::steady_clock::time_point time_StartExtORB = std::chrono::steady_clock::now();
+    #endif
 #endif
     ExtractORB(0,imGray,0,0);
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
     std::chrono::steady_clock::time_point time_EndExtORB = std::chrono::steady_clock::now();
 
     mTimeORB_Ext = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndExtORB - time_StartExtORB).count();
+    #endif
 #endif
 
 
@@ -315,13 +331,17 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
 
     // ORB extraction
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
     std::chrono::steady_clock::time_point time_StartExtORB = std::chrono::steady_clock::now();
+    #endif
 #endif
     ExtractORB(0,imGray,0,1000);
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
     std::chrono::steady_clock::time_point time_EndExtORB = std::chrono::steady_clock::now();
 
     mTimeORB_Ext = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndExtORB - time_StartExtORB).count();
+    #endif
 #endif
 
 
@@ -1063,7 +1083,9 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
 
     // ORB extraction
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
     std::chrono::steady_clock::time_point time_StartExtORB = std::chrono::steady_clock::now();
+    #endif
 #endif
     tbb::parallel_invoke(
         [this, &imLeft]() {Frame::ExtractORB(0, imLeft, static_cast<KannalaBrandt8*>(mpCamera)->mvLappingArea[0],static_cast<KannalaBrandt8*>(mpCamera)->mvLappingArea[1]);},
@@ -1071,9 +1093,11 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
     );
 
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
     std::chrono::steady_clock::time_point time_EndExtORB = std::chrono::steady_clock::now();
 
     mTimeORB_Ext = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndExtORB - time_StartExtORB).count();
+    #endif
 #endif
 
     Nleft = mvKeys.size();
@@ -1110,13 +1134,17 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
     mtlr = mTlr.translation();
 
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
     std::chrono::steady_clock::time_point time_StartStereoMatches = std::chrono::steady_clock::now();
+    #endif
 #endif
     ComputeStereoFishEyeMatches();
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
     std::chrono::steady_clock::time_point time_EndStereoMatches = std::chrono::steady_clock::now();
 
     mTimeStereoMatch = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndStereoMatches - time_StartStereoMatches).count();
+    #endif
 #endif
 
     //Put all descriptors in the same matrix
