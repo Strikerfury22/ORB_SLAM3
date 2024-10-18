@@ -1212,10 +1212,12 @@ void LoopClosing::CorrectLoop()
         Optimizer::OptimizeEssentialGraph(pLoopMap, mpLoopMatchedKF, mpCurrentKF, NonCorrectedSim3, CorrectedSim3, LoopConnections, bFixedScale);
     }
 #ifdef REGISTER_TIMES
-    std::chrono::steady_clock::time_point time_EndOpt = std::chrono::steady_clock::now();
+    #ifdef REGISTER_SECTION_LATENCY
+        std::chrono::steady_clock::time_point time_EndOpt = std::chrono::steady_clock::now();
 
-    double timeOptEss = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndOpt - time_EndFusion).count();
-    vdLoopOptEss_ms.push_back(timeOptEss);
+        double timeOptEss = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndOpt - time_EndFusion).count();
+        vdLoopOptEss_ms.push_back(timeOptEss);
+    #endif
 #endif
 
     mpAtlas->InformNewBigChange();
@@ -1663,10 +1665,12 @@ void LoopClosing::MergeLocal()
     }
 
 #ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
     std::chrono::steady_clock::time_point time_EndWeldingBA = std::chrono::steady_clock::now();
 
     double timeWeldingBA = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndWeldingBA - time_StartWeldingBA).count();
     vdWeldingBA_ms.push_back(timeWeldingBA);
+    #endif
 #endif
     //std::cout << "[Merge]: Welding bundle adjustment finished" << std::endl;
 
