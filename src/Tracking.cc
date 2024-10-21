@@ -596,7 +596,7 @@ void Tracking::PrintTimeStats()
         f << "Number of MPs: " << average << "$\\pm$" << deviation << std::endl;
         std::cout << "Number of MPs: " << average << "$\\pm$" << deviation << std::endl;
     }
-    record.close()
+    record.close();
     f.close();
 
 }
