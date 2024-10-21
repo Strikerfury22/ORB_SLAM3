@@ -417,7 +417,7 @@ void Tracking::PrintTimeStats()
     std::cout << "Local Mapping" << std::endl << std::endl;
     f << std::endl << "Local Mapping" << std::endl << std::endl;
 
-    if (!mpLocalMapper->vdKFInsert_ms.empty())
+    if (!mpLocalMapper->vdKFInsert_ms.empty()){
         average = calcAverage(mpLocalMapper->vdKFInsert_ms);
         deviation = calcDeviation(mpLocalMapper->vdKFInsert_ms, average);
         std::cout << "KF Insertion: " << average << "$\\pm$" << deviation << std::endl;
