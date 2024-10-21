@@ -227,6 +227,7 @@ void Tracking::TrackStats2File()
 
     f.close();
 
+    #ifdef REGISTER_SECTION_LATENCY
     f.open("TrackingTimeStats.txt");
     f << fixed << setprecision(6);
 
@@ -287,6 +288,7 @@ void Tracking::TrackStats2File()
     }
 
     f.close();
+    #endif
 }
 
 void Tracking::PrintTimeStats()
