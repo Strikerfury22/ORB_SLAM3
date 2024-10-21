@@ -694,9 +694,7 @@ void System::Shutdown()
         pangolin::BindToContext("ORB-SLAM2: Map Viewer");*/
 
 #ifdef REGISTER_TIMES
-    #ifdef REGISTER_SECTION_LATENCY
     mpTracker->PrintTimeStats();
-    #endif
 #endif
 
 
