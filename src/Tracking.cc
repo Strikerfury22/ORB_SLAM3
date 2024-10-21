@@ -291,12 +291,12 @@ void Tracking::TrackStats2File()
 
 void Tracking::PrintTimeStats()
 {
-    std::cout << "Inicializando?" << std::endl
+    std::cout << "Inicializando?" << std::endl;
     // Save data in files
     TrackStats2File();
-    std::cout << "Inicializando---------2?" << std::endl
+    std::cout << "Inicializando---------2?" << std::endl;
     LocalMapStats2File();
-    std::cout << "Inicializando---------3?" << std::endl
+    std::cout << "Inicializando---------3?" << std::endl;
 
 
     ofstream f;
@@ -385,18 +385,18 @@ void Tracking::PrintTimeStats()
     }
     #endif
     #ifdef REGISTER_TOTAL_LATENCY
-    if(!vdTrackTotal_ms.empty())
-    {
-        average = calcAverage(vdTrackTotal_ms);
-        deviation = calcDeviation(vdTrackTotal_ms, average);
-        std::cout << "Total Tracking: " << average << "$\\pm$" << deviation << std::endl;
-        f << "Total Tracking: " << average << "$\\pm$" << deviation << std::endl;
-        for (auto value : vdTrackTotal_ms){
-            record << value << std::endl;
+        if(!vdTrackTotal_ms.empty())
+        {
+            average = calcAverage(vdTrackTotal_ms);
+            deviation = calcDeviation(vdTrackTotal_ms, average);
+            std::cout << "Total Tracking: " << average << "$\\pm$" << deviation << std::endl;
+            f << "Total Tracking: " << average << "$\\pm$" << deviation << std::endl;
+            for (auto value : vdTrackTotal_ms){
+                record << value << std::endl;
+            }
+        } else {
+            std::cout << "Algún ifdef debe de estar mal" << std::endl;
         }
-    } else {
-        std::cout << "Algún ifdef debe de estar mal" << std::endl;
-    }
     #endif
     #ifdef REGISTER_SECTION_LATENCY
     if(!vdInitTracking_ms.empty())
