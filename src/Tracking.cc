@@ -315,7 +315,7 @@ void Tracking::PrintTimeStats()
     f << "---------------------------" << std::endl;
     f << "Tracking" << std::setprecision(5) << std::endl << std::endl;
     double average, deviation;
-    std::cout << "Calculando medidas" << std::endl
+    std::cout << "Calculando medidas" << std::endl;
     #ifdef REGISTER_SECTION_LATENCY
     if(!vdLoadFile_ms.empty())
     {
