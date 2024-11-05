@@ -303,8 +303,10 @@ int main(int argc, char **argv)
     #ifdef MEDIR_TIEMPO_SECCIONES//
         t = std::chrono::high_resolution_clock::now();
         #ifndef REGISTER_TOTAL_LATENCY
+            std::cout << "HORA DE GUARDAR EN EL FICHERO V1" << std::endl;
             ptimer.printStageTimesToFile(); //Print outside of sequence. If sequences are used, should use several ptimers on a vector.
         #else
+            std::cout << "HORA DE GUARDAR EN EL FICHERO V2" << std::endl;
             ptimer.printStageTimesToFile("samplesPipeline.txt",true); //Print outside of sequence. If sequences are used, should use several ptimers on a vector.
         #endif
     #endif
