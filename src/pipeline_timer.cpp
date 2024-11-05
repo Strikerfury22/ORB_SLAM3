@@ -19,7 +19,7 @@ void PipelineTimer::end_pipeline(int num_item, int num_stage){
     _stage_times[num_item][num_stage].second = std::chrono::high_resolution_clock::now();
 }
 
-void PipelineTimer::printStageTimesToFile(std::string filename) {
+void PipelineTimer::printStageTimesToFile(std::string filename, bool version2 = false) {
     if(filename.empty()) {
         filename = std::string("PipelineTimer.dat");
     }
@@ -29,12 +29,16 @@ void PipelineTimer::printStageTimesToFile(std::string filename) {
 
     if (outFile.is_open()) {
         for (int item = 0; item < _stage_times.size(); ++item) {
-            for (int stage = 0; stage < _stage_times[item].size(); ++stage) {
-                outFile << item << "\t" << stage << "\t"
-                        << std::chrono::duration_cast<std::chrono::nanoseconds>(
-                                _stage_times[item][stage].first - _ref_time).count() << "\t"
-                        << std::chrono::duration_cast<std::chrono::nanoseconds>(
-                                _stage_times[item][stage].second - _ref_time).count() << std::endl;
+            if (!version2){
+                for (int stage = 0; stage < _stage_times[item].size(); ++stage) {
+                    outFile << item << "\t" << stage << "\t"
+                            << std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                    _stage_times[item][stage].first - _ref_time).count() << "\t"
+                            << std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                    _stage_times[item][stage].second - _ref_time).count() << std::endl;
+                }
+            } else {
+                outFile << std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(_stage_times[item][_stage_times[item].size()-1].second - _stage_times[item][0].first).count() << std::endl;
             }
         }
         outFile.close();

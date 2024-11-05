@@ -8,7 +8,7 @@ public:
 
     void start_pipeline(int num_item, int num_stage);
     void end_pipeline(int num_item, int num_stage);
-    void printStageTimesToFile(std::string filename = "");
+    void printStageTimesToFile(std::string filename = "", bool version2 = false); // version2 hace que solo se guarde la latencia total en milisegundos de cada frame
 
 private:
     std::chrono::high_resolution_clock::time_point _ref_time;

@@ -127,8 +127,12 @@ int main(int argc, char **argv)
     }
 
 
-
-    PipelineTimer ptimer(nImages[0], 3);
+    
+    #ifdef REGISTER_TOTAL_LATENCY
+        PipelineTimer ptimer(nImages[0], 0);
+    #else
+        PipelineTimer ptimer(nImages[0], 3);
+    #endif
 
     cv::Mat imLeft, imRight;
     for (seq = 0; seq<num_seq; seq++)
@@ -166,7 +170,8 @@ int main(int argc, char **argv)
                 #ifdef MEDIR_TIEMPO_SECCIONES
                     #ifdef REGISTER_SECTION_LATENCY
                         std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-                    #endif
+                    #endif                 
+
                 #endif
                 
                 cv::Mat imLeft = cv::imread(vstrImageLeft[seq][n_image],cv::IMREAD_UNCHANGED); //,cv::IMREAD_UNCHANGED);
@@ -203,14 +208,19 @@ int main(int argc, char **argv)
                     #endif
                 #endif
                 #endif
-
-                ptimer.end_pipeline(n_image, 0);
+                
+                #ifndef REGISTER_TOTAL_LATENCY
+                    ptimer.end_pipeline(n_image, 0);
+                #endif
                 return n_image;
             }) &
             //Create Frame from image
             tbb::make_filter<int, int>(tbb::filter_mode::parallel,
             [&SLAM, &frames, &ptimer, &seq, &vTimestampsCam, &vstrImageLeft, &imgsLeft, &imgsRight, &vTimesTrack, &extractorsLeft, &extractorsRight, &roulette_size](int n_image) {
-                ptimer.start_pipeline(n_image, 1);
+                
+                #ifndef REGISTER_TOTAL_LATENCY
+                    ptimer.start_pipeline(n_image, 1);
+                #endif
                 
                 #ifdef MEDIR_TIEMPO_SECCIONES
                     #ifdef REGISTER_SECTION_LATENCY
@@ -229,17 +239,20 @@ int main(int argc, char **argv)
                         vTimesTrack[n_image] += t_extract;
                     #endif
                 #endif
-                ptimer.end_pipeline(n_image, 1);
+                #ifndef REGISTER_TOTAL_LATENCY
+                    ptimer.end_pipeline(n_image, 1);
+                #endif
                 return n_image;
             }) &
             // Last stage ORB
             tbb::make_filter<int, void>(tbb::filter_mode::serial_in_order,
             [&SLAM, &vTimesTrack, &frames, seq, &ptimer, &vTimesTrack, &times_load, &roulette_size](int n_image) {
-                ptimer.start_pipeline(n_image, 2);
-
+                #ifndef REGISTER_TOTAL_LATENCY
+                    ptimer.start_pipeline(n_image, 2);
+                #endif
 
                 #ifdef MEDIR_TIEMPO_SECCIONES
-                    #ifdef REGISTER_TOTAL_LATENCY
+                    #ifdef REGISTER_SECTION_LATENCY
                         std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
                     #endif
                 #endif
@@ -247,7 +260,7 @@ int main(int argc, char **argv)
                 SLAM.TrackFrame(frames[n_image % roulette_size]);
 
                 #ifdef MEDIR_TIEMPO_SECCIONES
-                    #ifdef REGISTER_TOTAL_LATENCY
+                    #ifdef REGISTER_SECTION_LATENCY
                         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 
                         double t_track = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
@@ -257,17 +270,19 @@ int main(int argc, char **argv)
 
                 #ifdef REGISTER_TIMES
                         
-                    #ifdef REGISTER_TOTAL_LATENCY
-                        SLAM.InsertTrackTime(ttrack);
-                    #endif
                     #ifdef REGISTER_SECTION_LATENCY
+                        SLAM.InsertTrackTime(ttrack);
                         SLAM.InsertLoadTime(times_load[n_image % roulette_size]);
                         SLAM.InsertVoidFrameTime();
                     #endif
                 #endif
                 #endif
 
-                ptimer.end_pipeline(n_image, 2);
+                #ifndef REGISTER_TOTAL_LATENCY
+                    ptimer.end_pipeline(n_image, 2);
+                #else
+                    ptimer.end_pipeline(n_image, 0);
+                #endif
             })); //END OF PIPELINE
 
         if(seq < num_seq - 1)
@@ -287,7 +302,11 @@ int main(int argc, char **argv)
     
     #ifdef MEDIR_TIEMPO_SECCIONES//
         t = std::chrono::high_resolution_clock::now();
-        ptimer.printStageTimesToFile(); //Print outside of sequence. If sequences are used, should use several ptimers on a vector.
+        #ifndef REGISTER_TOTAL_LATENCY
+            ptimer.printStageTimesToFile(); //Print outside of sequence. If sequences are used, should use several ptimers on a vector.
+        #else
+            ptimer.printStageTimesToFile("samplesPipeline.txt",true); //Print outside of sequence. If sequences are used, should use several ptimers on a vector.
+        #endif
     #endif
     // Save camera trajectory
     if (bFileName)
