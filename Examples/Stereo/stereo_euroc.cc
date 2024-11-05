@@ -129,7 +129,7 @@ int main(int argc, char **argv)
 
     
     #ifdef REGISTER_TOTAL_LATENCY
-        PipelineTimer ptimer(nImages[0], 0);
+        PipelineTimer ptimer(nImages[0], 1);
     #else
         PipelineTimer ptimer(nImages[0], 3);
     #endif
