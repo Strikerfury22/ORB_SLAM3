@@ -19,7 +19,7 @@ void PipelineTimer::end_pipeline(int num_item, int num_stage){
     _stage_times[num_item][num_stage].second = std::chrono::high_resolution_clock::now();
 }
 
-void PipelineTimer::printStageTimesToFile(std::string filename, bool version2 = false) {
+void PipelineTimer::printStageTimesToFile(std::string filename, bool version2) {
     if(filename.empty()) {
         filename = std::string("PipelineTimer.dat");
     }
