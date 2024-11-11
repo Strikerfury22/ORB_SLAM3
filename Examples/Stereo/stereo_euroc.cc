@@ -155,7 +155,7 @@ int main(int argc, char **argv)
             //Dummy stage to stablish the order of the frames for the parallel stages
             tbb::make_filter<void, int>(tbb::filter_mode::serial_in_order,
             [&n_image, seq, &nImages](tbb::flow_control& fc) { 
-                usleep(33000)
+                usleep(33000);
                 if( n_image == nImages[seq] ) {
                     fc.stop();
                     return -1;
