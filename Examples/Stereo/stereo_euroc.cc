@@ -150,17 +150,22 @@ int main(int argc, char **argv)
 
         int n_image = 0;
         
-
+        std::chrono::steady_clock::time_point initCarga, finCarga;  //finCarga es el timestamp en el que la anterior imagen llegó de la cámara
+                                                                    //initCarga es el timestamp en el que la imagen actual llegó de la cámara
         tbb::parallel_pipeline(num_tokens_pipeline,
             //Dummy stage to stablish the order of the frames for the parallel stages
             tbb::make_filter<void, int>(tbb::filter_mode::serial_in_order,
-            [&n_image, seq, &nImages](tbb::flow_control& fc) { 
-                if (n_image > 0) usleep(33000); //Solo evita dormirse en el primer fotograma (como el baseline)
+            [&n_image, seq, &nImages, &initCarga, &finCarga](tbb::flow_control& fc) { 
+                initCarga = std::chrono::steady_clock::now(); //Para la simulación de FPS de la cámara
+                if (n_image > 0){  //Solo evita dormirse en el primer fotograma (como el baseline)
+                    double milisegundos =  std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(initCarga-finCarga).count();
+                    if (33 > milisegundos) usleep((33-milisegundos) * 1000);
+                }
                 if( n_image == nImages[seq] ) {
                     fc.stop();
                     return -1;
                 }
-
+                finCarga = std::chrono::steady_clock::now(); //Para la simulación de FPS de la cámara
                 return n_image++;
             }) & 
             // Read left and right images from file
