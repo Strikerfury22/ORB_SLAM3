@@ -38,6 +38,9 @@
 #include "Thirdparty/g2o/g2o/core/robust_kernel_impl.h"
 #include "Thirdparty/g2o/g2o/solvers/linear_solver_dense.h"
 
+
+
+
 namespace ORB_SLAM3
 {
 
@@ -46,6 +49,24 @@ class LoopClosing;
 class Optimizer
 {
 public:
+
+    #ifdef REGISTER_MMUTEXMAPUPDATE
+      static std::vector<double> listaSolicitudes_mMutexMapUpdate_LM;
+      static std::vector<double> listaRecepciones_mMutexMapUpdate_LM;
+      static std::vector<double> listaLiberaciones_mMutexMapUpdate_LM;
+      
+      static std::vector<double> listaSolicitudes_mMutexMapUpdate_LC_mergeLocal;
+      static std::vector<double> listaRecepciones_mMutexMapUpdate_LC_mergeLocal;
+      static std::vector<double> listaLiberaciones_mMutexMapUpdate_LC_mergeLocal;
+      
+      static std::vector<double> listaSolicitudes_mMutexMapUpdate_LC_mergeLocal2;
+      static std::vector<double> listaRecepciones_mMutexMapUpdate_LC_mergeLocal2;
+      static std::vector<double> listaLiberaciones_mMutexMapUpdate_LC_mergeLocal2;
+      
+      static std::vector<double> listaSolicitudes_mMutexMapUpdate_LC_loopClosing;
+      static std::vector<double> listaRecepciones_mMutexMapUpdate_LC_loopClosing;
+      static std::vector<double> listaLiberaciones_mMutexMapUpdate_LC_loopClosing;
+    #endif
 
     void static BundleAdjustment(const std::vector<KeyFrame*> &vpKF, const std::vector<MapPoint*> &vpMP,
                                  int nIterations = 5, bool *pbStopFlag=NULL, const unsigned long nLoopKF=0,

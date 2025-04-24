@@ -22,14 +22,16 @@ dataset=$1
 N_TOKENS_PIPELINE=$2
 ORIGINAL_PATH=$(pwd)
 DATASETS_PATH=/home/gaz/Desktop/MarcosIlarraza/datasets
-for i in {1..3}
+#for i in {1..3}
+for i in {1..15}
+#for i in {1..12}
 do
   echo ""
   echo "***********************************************************************"
   echo CALL $i FOR DATASET $dataset with $N_TOKENS_PIPELINE TOKENS IN THE PIPELINE
   echo "***********************************************************************"
   echo ""
-  res_directory=Results_19_08_2024/${dataset}_${N_TOKENS_PIPELINE}_${extResDir}_$i
+  res_directory=2025/Results_22_01/${dataset}_${N_TOKENS_PIPELINE}_${extResDir}_$i
   
   rm -fr $res_directory
   mkdir -p $res_directory
@@ -42,8 +44,10 @@ do
     sudo perf stat -e power/energy-cores/,power/energy-ram/,power/energy-pkg/ $ORIGINAL_PATH/Examples/Stereo/stereo_euroc_threads_no_times $N_TOKENS_PIPELINE 27 $ORIGINAL_PATH/Vocabulary/ORBvoc.txt $ORIGINAL_PATH/Examples/Stereo/EuRoC.yaml $DATASETS_PATH/$dataset $ORIGINAL_PATH/Examples/Stereo/EuRoC_TimeStamps/$dataset.txt data_orbslam > orbslam3_output.log 2>&1
   elif [ $3 -eq 2 ]; then
     sudo perf stat -e power/energy-cores/,power/energy-ram/,power/energy-pkg/ $ORIGINAL_PATH/Examples/Stereo/stereo_euroc_tbb_times $N_TOKENS_PIPELINE 27 $ORIGINAL_PATH/Vocabulary/ORBvoc.txt $ORIGINAL_PATH/Examples/Stereo/EuRoC.yaml $DATASETS_PATH/$dataset $ORIGINAL_PATH/Examples/Stereo/EuRoC_TimeStamps/$dataset.txt data_orbslam > orbslam3_output.log 2>&1
-  else
-    sudo perf stat -e power/energy-cores/,power/energy-ram/,power/energy-pkg/ $ORIGINAL_PATH/Examples/Stereo/stereo_euroc_threads_times $N_TOKENS_PIPELINE 27 $ORIGINAL_PATH/Vocabulary/ORBvoc.txt $ORIGINAL_PATH/Examples/Stereo/EuRoC.yaml $DATASETS_PATH/$dataset $ORIGINAL_PATH/Examples/Stereo/EuRoC_TimeStamps/$dataset.txt data_orbslam > orbslam3_output.log 2>&1
+  elif [ $3 -eq 3 ]; then
+    nice -20 sudo perf stat -e power/energy-cores/,power/energy-ram/,power/energy-pkg/ $ORIGINAL_PATH/Examples/Stereo/stereo_euroc_hist_full_latency $N_TOKENS_PIPELINE 27 $ORIGINAL_PATH/Vocabulary/ORBvoc.txt $ORIGINAL_PATH/Examples/Stereo/EuRoC.yaml $DATASETS_PATH/$dataset $ORIGINAL_PATH/Examples/Stereo/EuRoC_TimeStamps/$dataset.txt data_orbslam > orbslam3_output.log 2>&1
+  elif [ $3 -eq 4 ]; then
+    nice -20 sudo $ORIGINAL_PATH/Examples/Stereo/stereo_euroc_hist_full_latency $N_TOKENS_PIPELINE 27 $ORIGINAL_PATH/Vocabulary/ORBvoc.txt $ORIGINAL_PATH/Examples/Stereo/EuRoC.yaml $DATASETS_PATH/$dataset $ORIGINAL_PATH/Examples/Stereo/EuRoC_TimeStamps/$dataset.txt data_orbslam > orbslam3_output.log 2>&1
   fi
   T_ELAPSED=$(($SECONDS-$T_START))
   if [ -f data_orbslam_f.txt ]; then

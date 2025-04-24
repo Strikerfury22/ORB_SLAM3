@@ -83,6 +83,16 @@ class Settings;
 class System
 {
 public:
+
+#ifdef REGISTER_MMUTEXMAPUPDATE
+
+ Tracking* getTracker();
+
+ LoopClosing* getLoopCloser();
+    
+#endif
+
+
     // Input sensor
     enum eSensor{
         MONOCULAR=0,

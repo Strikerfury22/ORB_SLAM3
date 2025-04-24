@@ -27,12 +27,205 @@
 #include<opencv2/core/core.hpp>
 
 #include<System.h>
+#include "Optimizer.h"
 #include"tbb_utils.hpp"
 #include "pipeline_timer.hpp"
 
 #define ROULETTE_TOKENS_FACTOR 1
 
 using namespace std;
+
+#ifdef REGISTER_MMUTEXMAPUPDATE
+
+
+void guardarMMutexMapUpdateEnFichero(ORB_SLAM3::System &slamSystem){
+    std::cout << "Guardando en formato JSON" << std::endl;
+    //Buscamos el tiempo de inicio (para asignarlo como tiempo cero)
+    std::cout << "ListaDatos1" << std::endl;
+    double tiempo0 = slamSystem.getTracker()->getMetricasMMutexMapUpdate(0)[0];
+    std::cout << "ListaDatos2" << std::endl;
+    if (slamSystem.getLoopCloser()->getMetricasMMutexMapUpdate(0).size() > 0 && tiempo0 > slamSystem.getLoopCloser()->getMetricasMMutexMapUpdate(0)[0]){
+        std::cout << "Cambio" << std::endl;
+        tiempo0 = slamSystem.getLoopCloser()->getMetricasMMutexMapUpdate(0)[0];
+    }
+    std::cout << "ListaDatos4" << std::endl;
+    if (slamSystem.getLoopCloser()->getMetricasMMutexMapUpdate(3).size() > 0 && tiempo0 > slamSystem.getLoopCloser()->getMetricasMMutexMapUpdate(3)[0]){
+        std::cout << "Cambio" << std::endl;
+        tiempo0 = slamSystem.getLoopCloser()->getMetricasMMutexMapUpdate(3)[0];
+    }
+    std::cout << "ListaDatos4" << std::endl;
+    if (slamSystem.getLoopCloser()->getMetricasMMutexMapUpdate(6).size() > 0 && tiempo0 > slamSystem.getLoopCloser()->getMetricasMMutexMapUpdate(6)[0]){
+        std::cout << "Cambio" << std::endl;
+        tiempo0 = slamSystem.getLoopCloser()->getMetricasMMutexMapUpdate(6)[0];
+    }
+    std::cout << "ListaDatos5" << std::endl;
+    if (ORB_SLAM3::Optimizer::listaSolicitudes_mMutexMapUpdate_LM.size() > 0 && tiempo0 > ORB_SLAM3::Optimizer::listaSolicitudes_mMutexMapUpdate_LM[0]){
+        std::cout << "Cambio" << std::endl;
+        tiempo0 = ORB_SLAM3::Optimizer::listaSolicitudes_mMutexMapUpdate_LM[0];
+    }
+    std::cout << "ListaDatos6" << std::endl;
+    if (ORB_SLAM3::Optimizer::listaSolicitudes_mMutexMapUpdate_LC_mergeLocal.size() > 0 && tiempo0 > ORB_SLAM3::Optimizer::listaSolicitudes_mMutexMapUpdate_LC_mergeLocal[0]){
+        std::cout << "Cambio" << std::endl;
+        tiempo0 = ORB_SLAM3::Optimizer::listaSolicitudes_mMutexMapUpdate_LC_mergeLocal[0];
+    }
+    std::cout << "ListaDatos7" << std::endl;
+    if (ORB_SLAM3::Optimizer::listaSolicitudes_mMutexMapUpdate_LC_mergeLocal2.size() > 0 && tiempo0 > ORB_SLAM3::Optimizer::listaSolicitudes_mMutexMapUpdate_LC_mergeLocal2[0]){
+        std::cout << "Cambio" << std::endl;
+        tiempo0 = ORB_SLAM3::Optimizer::listaSolicitudes_mMutexMapUpdate_LC_mergeLocal2[0];
+    }
+    std::cout << "ListaDatos8" << std::endl;
+    if (ORB_SLAM3::Optimizer::listaSolicitudes_mMutexMapUpdate_LC_loopClosing.size() > 0 && tiempo0 > ORB_SLAM3::Optimizer::listaSolicitudes_mMutexMapUpdate_LC_loopClosing[0]){
+        std::cout << "Cambio" << std::endl;
+        tiempo0 = ORB_SLAM3::Optimizer::listaSolicitudes_mMutexMapUpdate_LC_loopClosing[0];
+    }
+
+    //Ya tenemos el tiempo cero. Empezamos la declaración de cada instancia que hace mutex lock.
+
+
+    std::cout << "Intentando abrir fichero" << std::endl;
+
+    std::ofstream outFile("ficheroSolicitudMutex.json");
+
+    std::cout << "¿Abierto?" << std::endl;
+
+    if (outFile.is_open()) {
+        outFile << "{\"traceEvents\":[" << std::endl;
+        //Declaración de los "procesos" de Chromium
+        outFile << "{\"args\":{\"name\":\"TrackingAccess\"},\"cat\":\"__metadata\",\"name\":\"thread_name\",\"ph\":\"M\",\"pid\":0,\"tid\":0,\"ts\":0}," << std::endl;
+        outFile << "{\"args\":{\"name\":\"(LoopClosing)MergeLocalUpdateMapAccess\"},\"cat\":\"__metadata\",\"name\":\"thread_name\",\"ph\":\"M\",\"pid\":1,\"tid\":1,\"ts\":0}," << std::endl;
+        outFile << "{\"args\":{\"name\":\"(LoopClosing)MergeLocalCurrentMapAccess\"},\"cat\":\"__metadata\",\"name\":\"thread_name\",\"ph\":\"M\",\"pid\":2,\"tid\":2,\"ts\":0}," << std::endl;
+        outFile << "{\"args\":{\"name\":\"(LoopClosing)CorrectLoopAccess\"},\"cat\":\"__metadata\",\"name\":\"thread_name\",\"ph\":\"M\",\"pid\":3,\"tid\":3,\"ts\":0}," << std::endl;
+        outFile << "{\"args\":{\"name\":\"OptimizerLocalBundleAdjustmentCallAccess\"},\"cat\":\"__metadata\",\"name\":\"thread_name\",\"ph\":\"M\",\"pid\":4,\"tid\":4,\"ts\":0}," << std::endl;
+        outFile << "{\"args\":{\"name\":\"(LoopClosing)OptimizerLocalBundleAdjustmentMergeLocalCallAccess\"},\"cat\":\"__metadata\",\"name\":\"thread_name\",\"ph\":\"M\",\"pid\":5,\"tid\":5,\"ts\":0}," << std::endl;
+        outFile << "{\"args\":{\"name\":\"(LoopClosing)OptimizerEssentialGraphMergeLocalCallAccess\"},\"cat\":\"__metadata\",\"name\":\"thread_name\",\"ph\":\"M\",\"pid\":6,\"tid\":6,\"ts\":0}," << std::endl;
+        outFile << "{\"args\":{\"name\":\"(LoopClosing)OptimizerLocalBundleAdjustmentCorrectLoopCallAccess\"},\"cat\":\"__metadata\",\"name\":\"thread_name\",\"ph\":\"M\",\"pid\":7,\"tid\":7,\"ts\":0}";
+
+        //Por cada instancia, generamos sus gráficas
+        int numElementos = slamSystem.getTracker()->getMetricasMMutexMapUpdate(0).size();
+        std::cout << "Primer Bucle" << std::endl;
+        for (int i = 0; i < numElementos; i++){
+            outFile << "," << std::endl;
+            double ts = slamSystem.getTracker()->getMetricasMMutexMapUpdate(0)[i] - tiempo0;
+            double duracion = (slamSystem.getTracker()->getMetricasMMutexMapUpdate(1)[i] - tiempo0) - ts;
+            if (duracion > 0){
+                outFile << "{\"args\":{},\"cat\":\"sequence_manager\",\"dur\":" << duracion << ",\"name\":\"MutexRequest\",\"ph\":\"X\",\"pid\":0,\"tid\":0,\"ts\":" << ts << "}," << std::endl;
+            }
+            ts = (slamSystem.getTracker()->getMetricasMMutexMapUpdate(1)[i] - tiempo0);
+            duracion = (slamSystem.getTracker()->getMetricasMMutexMapUpdate(2)[i] - tiempo0) - ts;
+            outFile << "{\"args\":{},\"cat\":\"sequence_manager\",\"dur\":" << duracion << ",\"name\":\"Executes\",\"ph\":\"X\",\"pid\":0,\"tid\":0,\"ts\":" << ts << "}";
+        }
+
+        numElementos = slamSystem.getLoopCloser()->getMetricasMMutexMapUpdate(0).size();
+        std::cout << "Primer Bucle" << std::endl;
+        for (int i = 0; i < numElementos; i++){
+            outFile << "," << std::endl;
+            double ts = slamSystem.getLoopCloser()->getMetricasMMutexMapUpdate(0)[i] - tiempo0;
+            double duracion = (slamSystem.getLoopCloser()->getMetricasMMutexMapUpdate(1)[i] - tiempo0) - ts;
+            if (duracion > 0){
+                outFile << "{\"args\":{},\"cat\":\"sequence_manager\",\"dur\":" << duracion << ",\"name\":\"MutexRequest\",\"ph\":\"X\",\"pid\":1,\"tid\":1,\"ts\":" << ts << "}," << std::endl;
+            }
+            ts = (slamSystem.getLoopCloser()->getMetricasMMutexMapUpdate(1)[i] - tiempo0);
+            duracion = (slamSystem.getLoopCloser()->getMetricasMMutexMapUpdate(2)[i] - tiempo0) - ts;
+            outFile << "{\"args\":{},\"cat\":\"sequence_manager\",\"dur\":" << duracion << ",\"name\":\"Executes\",\"ph\":\"X\",\"pid\":1,\"tid\":1,\"ts\":" << ts << "}";
+        }
+
+        numElementos = slamSystem.getLoopCloser()->getMetricasMMutexMapUpdate(3).size();
+        std::cout << "Primer Bucle" << std::endl;
+        for (int i = 0; i < numElementos; i++){
+            outFile << "," << std::endl;
+            double ts = slamSystem.getLoopCloser()->getMetricasMMutexMapUpdate(3)[i] - tiempo0;
+            double duracion = (slamSystem.getLoopCloser()->getMetricasMMutexMapUpdate(4)[i] - tiempo0) - ts;
+            if (duracion > 0){
+                outFile << "{\"args\":{},\"cat\":\"sequence_manager\",\"dur\":" << duracion << ",\"name\":\"MutexRequest\",\"ph\":\"X\",\"pid\":2,\"tid\":2,\"ts\":" << ts << "}," << std::endl;
+            }
+            ts = (slamSystem.getLoopCloser()->getMetricasMMutexMapUpdate(4)[i] - tiempo0);
+            duracion = (slamSystem.getLoopCloser()->getMetricasMMutexMapUpdate(5)[i] - tiempo0) - ts;
+            outFile << "{\"args\":{},\"cat\":\"sequence_manager\",\"dur\":" << duracion << ",\"name\":\"Executes\",\"ph\":\"X\",\"pid\":2,\"tid\":2,\"ts\":" << ts << "}";
+        }
+
+        numElementos = slamSystem.getLoopCloser()->getMetricasMMutexMapUpdate(6).size();
+        std::cout << "Primer Bucle" << std::endl;
+        for (int i = 0; i < numElementos; i++){
+            outFile << "," << std::endl;
+            double ts = slamSystem.getLoopCloser()->getMetricasMMutexMapUpdate(6)[i] - tiempo0;
+            double duracion = (slamSystem.getLoopCloser()->getMetricasMMutexMapUpdate(7)[i] - tiempo0) - ts;
+            if (duracion > 0){
+                outFile << "{\"args\":{},\"cat\":\"sequence_manager\",\"dur\":" << duracion << ",\"name\":\"MutexRequest\",\"ph\":\"X\",\"pid\":3,\"tid\":3,\"ts\":" << ts << "}," << std::endl;
+            }
+            ts = (slamSystem.getLoopCloser()->getMetricasMMutexMapUpdate(7)[i] - tiempo0);
+            duracion = (slamSystem.getLoopCloser()->getMetricasMMutexMapUpdate(8)[i] - tiempo0) - ts;
+            outFile << "{\"args\":{},\"cat\":\"sequence_manager\",\"dur\":" << duracion << ",\"name\":\"Executes\",\"ph\":\"X\",\"pid\":3,\"tid\":3,\"ts\":" << ts << "}";
+        }
+
+        numElementos = ORB_SLAM3::Optimizer::listaSolicitudes_mMutexMapUpdate_LM.size();
+        std::cout << "Primer Bucle" << std::endl;
+        for (int i = 0; i < numElementos; i++){
+            outFile << "," << std::endl;
+            double ts = ORB_SLAM3::Optimizer::listaSolicitudes_mMutexMapUpdate_LM[i] - tiempo0;
+            double duracion = (ORB_SLAM3::Optimizer::listaRecepciones_mMutexMapUpdate_LM[i] - tiempo0) - ts;
+            if (duracion > 0){
+                outFile << "{\"args\":{},\"cat\":\"sequence_manager\",\"dur\":" << duracion << ",\"name\":\"MutexRequest\",\"ph\":\"X\",\"pid\":4,\"tid\":4,\"ts\":" << ts << "}," << std::endl;
+            }
+            ts = (ORB_SLAM3::Optimizer::listaRecepciones_mMutexMapUpdate_LM[i] - tiempo0);
+            duracion = (ORB_SLAM3::Optimizer::listaLiberaciones_mMutexMapUpdate_LM[i] - tiempo0) - ts;
+            outFile << "{\"args\":{},\"cat\":\"sequence_manager\",\"dur\":" << duracion << ",\"name\":\"Executes\",\"ph\":\"X\",\"pid\":4,\"tid\":4,\"ts\":" << ts << "}";
+        }
+
+        numElementos = ORB_SLAM3::Optimizer::listaSolicitudes_mMutexMapUpdate_LC_mergeLocal.size();
+        std::cout << "Primer Bucle" << std::endl;
+        for (int i = 0; i < numElementos; i++){
+            outFile << "," << std::endl;
+            double ts = ORB_SLAM3::Optimizer::listaSolicitudes_mMutexMapUpdate_LC_mergeLocal[i] - tiempo0;
+            double duracion = (ORB_SLAM3::Optimizer::listaRecepciones_mMutexMapUpdate_LC_mergeLocal[i] - tiempo0) - ts;
+            if (duracion > 0){
+                outFile << "{\"args\":{},\"cat\":\"sequence_manager\",\"dur\":" << duracion << ",\"name\":\"MutexRequest\",\"ph\":\"X\",\"pid\":5,\"tid\":5,\"ts\":" << ts << "}," << std::endl;
+            }
+            ts = (ORB_SLAM3::Optimizer::listaRecepciones_mMutexMapUpdate_LC_mergeLocal[i] - tiempo0);
+            duracion = (ORB_SLAM3::Optimizer::listaLiberaciones_mMutexMapUpdate_LC_mergeLocal[i] - tiempo0) - ts;
+            outFile << "{\"args\":{},\"cat\":\"sequence_manager\",\"dur\":" << duracion << ",\"name\":\"Executes\",\"ph\":\"X\",\"pid\":5,\"tid\":5,\"ts\":" << ts << "}";
+        }
+
+        numElementos = ORB_SLAM3::Optimizer::listaSolicitudes_mMutexMapUpdate_LC_mergeLocal2.size();
+        std::cout << "Primer Bucle" << std::endl;
+        for (int i = 0; i < numElementos; i++){
+            outFile << "," << std::endl;
+            double ts = ORB_SLAM3::Optimizer::listaSolicitudes_mMutexMapUpdate_LC_mergeLocal2[i] - tiempo0;
+            double duracion = (ORB_SLAM3::Optimizer::listaRecepciones_mMutexMapUpdate_LC_mergeLocal2[i] - tiempo0) - ts;
+            if (duracion > 0){
+                outFile << "{\"args\":{},\"cat\":\"sequence_manager\",\"dur\":" << duracion << ",\"name\":\"MutexRequest\",\"ph\":\"X\",\"pid\":6,\"tid\":6,\"ts\":" << ts << "}," << std::endl;
+            }
+            ts = (ORB_SLAM3::Optimizer::listaRecepciones_mMutexMapUpdate_LC_mergeLocal2[i] - tiempo0);
+            duracion = (ORB_SLAM3::Optimizer::listaLiberaciones_mMutexMapUpdate_LC_mergeLocal2[i] - tiempo0) - ts;
+            outFile << "{\"args\":{},\"cat\":\"sequence_manager\",\"dur\":" << duracion << ",\"name\":\"Executes\",\"ph\":\"X\",\"pid\":6,\"tid\":6,\"ts\":" << ts << "}";
+        }
+
+        numElementos = ORB_SLAM3::Optimizer::listaSolicitudes_mMutexMapUpdate_LC_loopClosing.size();
+        std::cout << "Primer Bucle" << std::endl;
+        for (int i = 0; i < numElementos; i++){
+            outFile << "," << std::endl;
+            double ts = ORB_SLAM3::Optimizer::listaSolicitudes_mMutexMapUpdate_LC_loopClosing[i] - tiempo0;
+            double duracion = (ORB_SLAM3::Optimizer::listaRecepciones_mMutexMapUpdate_LC_loopClosing[i] - tiempo0) - ts;
+            if (duracion > 0){
+                outFile << "{\"args\":{},\"cat\":\"sequence_manager\",\"dur\":" << duracion << ",\"name\":\"MutexRequest\",\"ph\":\"X\",\"pid\":7,\"tid\":7,\"ts\":" << ts << "}," << std::endl;
+            }
+            ts = (ORB_SLAM3::Optimizer::listaRecepciones_mMutexMapUpdate_LC_loopClosing[i] - tiempo0);
+            duracion = (ORB_SLAM3::Optimizer::listaLiberaciones_mMutexMapUpdate_LC_loopClosing[i] - tiempo0) - ts;
+            outFile << "{\"args\":{},\"cat\":\"sequence_manager\",\"dur\":" << duracion << ",\"name\":\"Executes\",\"ph\":\"X\",\"pid\":7,\"tid\":7,\"ts\":" << ts << "}";
+        }
+
+        //Ahora cerramos el fichero con los metadatos
+        outFile << "\"metadata\":{}}";
+
+        outFile.close();
+    } else {
+        std::cerr << "Unable to open the file: ficheroSolicitudMutex.json" << std::endl;
+    }
+
+    outFile.close();
+    return;
+}
+
+#endif
 
 void LoadImages(const string &strPathLeft, const string &strPathRight, const string &strPathTimes,
                 vector<string> &vstrImageLeft, vector<string> &vstrImageRight, vector<double> &vTimeStamps);
@@ -152,20 +345,22 @@ int main(int argc, char **argv)
         
         std::chrono::steady_clock::time_point initCarga, finCarga;  //finCarga es el timestamp en el que la anterior imagen llegó de la cámara
                                                                     //initCarga es el timestamp en el que la imagen actual llegó de la cámara
+                                                                    
+        std::cout << "Inicia la pipeline" << std::endl;
         tbb::parallel_pipeline(num_tokens_pipeline,
             //Dummy stage to stablish the order of the frames for the parallel stages
             tbb::make_filter<void, int>(tbb::filter_mode::serial_in_order,
             [&n_image, seq, &nImages, &initCarga, &finCarga](tbb::flow_control& fc) { 
-                initCarga = std::chrono::steady_clock::now(); //Para la simulación de FPS de la cámara
+                /*//initCarga = std::chrono::steady_clock::now(); //Para la simulación de FPS de la cámara
                 if (n_image > 0){  //Solo evita dormirse en el primer fotograma (como el baseline)
                     double milisegundos =  std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(initCarga-finCarga).count();
                     if (33 > milisegundos) usleep((33-milisegundos) * 1000);
-                }
+                }*/
                 if( n_image == nImages[seq] ) {
                     fc.stop();
                     return -1;
                 }
-                finCarga = std::chrono::steady_clock::now(); //Para la simulación de FPS de la cámara
+                //finCarga = std::chrono::steady_clock::now(); //Para la simulación de FPS de la cámara
                 return n_image++;
             }) & 
             // Read left and right images from file
@@ -290,7 +485,7 @@ int main(int argc, char **argv)
                     ptimer.end_pipeline(n_image, 0);
                 #endif
             })); //END OF PIPELINE
-
+            std::cout << "Acaba la pipeline" << std::endl;
         if(seq < num_seq - 1)
         {
             cout << "Changing the dataset" << endl;
@@ -302,6 +497,11 @@ int main(int argc, char **argv)
         std::cout << "ALGO_END\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
         #endif
     }
+    
+    #ifdef REGISTER_MMUTEXMAPUPDATE
+        guardarMMutexMapUpdateEnFichero(SLAM);
+    #endif
+    std::cout << "Apagamos ORB-SLAM3" << std::endl;
     // Stop all threads
     SLAM.Shutdown();
 

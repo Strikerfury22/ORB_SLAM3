@@ -40,6 +40,17 @@ using namespace std;
 namespace ORB_SLAM3
 {
 
+#ifdef REGISTER_MMUTEXMAPUPDATE 
+vector<double> Tracking::getMetricasMMutexMapUpdate(int id){
+    if (id == 0){
+        return listaSolicitudes_mMutexMapUpdate;
+    } else if (id == 1) {
+        return listaRecepciones_mMutexMapUpdate;
+    } else {
+        return listaLiberaciones_mMutexMapUpdate;
+    }
+}
+#endif
 
 Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Atlas *pAtlas, KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor, Settings* settings, const string &_nameSeq):
     mState(NO_IMAGES_YET), mSensor(sensor), mTrackedFr(0), mbStep(false),
@@ -2032,9 +2043,19 @@ void Tracking::Track()
     }
     mbCreatedMap = false;
 
+    #ifdef REGISTER_MMUTEXMAPUPDATE
+      std::chrono::steady_clock::time_point muestraSolicitud = std::chrono::steady_clock::now();
+      listaSolicitudes_mMutexMapUpdate.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraSolicitud.time_since_epoch()).count());
+    #endif
+    
     // Get Map Mutex -> Map cannot be changed
     unique_lock<mutex> lock(pCurrentMap->mMutexMapUpdate);
-
+    
+    #ifdef REGISTER_MMUTEXMAPUPDATE
+      std::chrono::steady_clock::time_point muestraRecepcion = std::chrono::steady_clock::now();
+      listaRecepciones_mMutexMapUpdate.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraRecepcion.time_since_epoch()).count());
+    #endif
+    
     mbMapUpdated = false;
 
     int nCurMapChangeIndex = pCurrentMap->GetMapChangeIndex();
@@ -2446,6 +2467,11 @@ void Tracking::Track()
             if(pCurrentMap->KeyFramesInMap()<=10)
             {
                 mpSystem->ResetActiveMap();
+                
+                #ifdef REGISTER_MMUTEXMAPUPDATE
+                  std::chrono::steady_clock::time_point muestraLiberacion = std::chrono::steady_clock::now();
+                  listaLiberaciones_mMutexMapUpdate.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraLiberacion.time_since_epoch()).count());
+                #endif
                 return;
             }
             if (mSensor == System::IMU_MONOCULAR || mSensor == System::IMU_STEREO || mSensor == System::IMU_RGBD)
@@ -2457,7 +2483,11 @@ void Tracking::Track()
                 }
 
             CreateMapInAtlas();
-
+            
+            #ifdef REGISTER_MMUTEXMAPUPDATE
+              std::chrono::steady_clock::time_point muestraLiberacion = std::chrono::steady_clock::now();
+              listaLiberaciones_mMutexMapUpdate.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraLiberacion.time_since_epoch()).count());
+            #endif
             return;
         }
 
@@ -2502,6 +2532,11 @@ void Tracking::Track()
         }
     }
 #endif
+    
+    #ifdef REGISTER_MMUTEXMAPUPDATE
+      std::chrono::steady_clock::time_point muestraLiberacion = std::chrono::steady_clock::now();
+      listaLiberaciones_mMutexMapUpdate.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraLiberacion.time_since_epoch()).count());
+    #endif
 }
 
 

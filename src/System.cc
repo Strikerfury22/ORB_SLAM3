@@ -36,6 +36,18 @@
 namespace ORB_SLAM3
 {
 
+#ifdef REGISTER_MMUTEXMAPUPDATE
+
+Tracking* System::getTracker(){
+    return mpTracker;
+}
+
+LoopClosing* System::getLoopCloser(){
+    return mpLoopCloser;
+}
+    
+#endif
+
 Verbose::eLevel Verbose::th = Verbose::VERBOSITY_NORMAL;
 
 System::System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor,

@@ -44,6 +44,25 @@
 
 namespace ORB_SLAM3
 {
+
+#ifdef REGISTER_MMUTEXMAPUPDATE
+    std::vector<double> Optimizer::listaSolicitudes_mMutexMapUpdate_LM;
+    std::vector<double> Optimizer::listaRecepciones_mMutexMapUpdate_LM;
+    std::vector<double> Optimizer::listaLiberaciones_mMutexMapUpdate_LM;
+
+    std::vector<double> Optimizer::listaSolicitudes_mMutexMapUpdate_LC_mergeLocal;
+    std::vector<double> Optimizer::listaRecepciones_mMutexMapUpdate_LC_mergeLocal;
+    std::vector<double> Optimizer::listaLiberaciones_mMutexMapUpdate_LC_mergeLocal;
+
+    std::vector<double> Optimizer::listaSolicitudes_mMutexMapUpdate_LC_mergeLocal2;
+    std::vector<double> Optimizer::listaRecepciones_mMutexMapUpdate_LC_mergeLocal2;
+    std::vector<double> Optimizer::listaLiberaciones_mMutexMapUpdate_LC_mergeLocal2;
+
+    std::vector<double> Optimizer::listaSolicitudes_mMutexMapUpdate_LC_loopClosing;
+    std::vector<double> Optimizer::listaRecepciones_mMutexMapUpdate_LC_loopClosing;
+    std::vector<double> Optimizer::listaLiberaciones_mMutexMapUpdate_LC_loopClosing;
+#endif
+
 bool sortByVal(const pair<MapPoint*, int> &a, const pair<MapPoint*, int> &b)
 {
     return (a.second < b.second);
@@ -1460,8 +1479,18 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     }
 
 
+    #ifdef REGISTER_MMUTEXMAPUPDATE
+      std::chrono::steady_clock::time_point muestraSolicitud = std::chrono::steady_clock::now();
+      listaSolicitudes_mMutexMapUpdate_LM.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraSolicitud.time_since_epoch()).count());
+    #endif
+    
     // Get Map Mutex
     unique_lock<mutex> lock(pMap->mMutexMapUpdate);
+
+    #ifdef REGISTER_MMUTEXMAPUPDATE
+      std::chrono::steady_clock::time_point muestraRecepcion = std::chrono::steady_clock::now();
+      listaRecepciones_mMutexMapUpdate_LM.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraRecepcion.time_since_epoch()).count());
+    #endif
 
     if(!vToErase.empty())
     {
@@ -1495,6 +1524,11 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     }
 
     pMap->IncreaseChangeIndex();
+    
+    #ifdef REGISTER_MMUTEXMAPUPDATE
+      std::chrono::steady_clock::time_point muestraLiberacion = std::chrono::steady_clock::now();
+      listaLiberaciones_mMutexMapUpdate_LM.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraLiberacion.time_since_epoch()).count());
+    #endif
 }
 
 
@@ -1730,7 +1764,18 @@ void Optimizer::OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* p
     optimizer.computeActiveErrors();
     optimizer.optimize(20);
     optimizer.computeActiveErrors();
+
+    #ifdef REGISTER_MMUTEXMAPUPDATE
+        std::chrono::steady_clock::time_point muestraSolicitud = std::chrono::steady_clock::now();
+        listaSolicitudes_mMutexMapUpdate_LC_loopClosing.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraSolicitud.time_since_epoch()).count());
+    #endif
+
     unique_lock<mutex> lock(pMap->mMutexMapUpdate);
+
+    #ifdef REGISTER_MMUTEXMAPUPDATE
+        std::chrono::steady_clock::time_point muestraRecepcion = std::chrono::steady_clock::now();
+        listaRecepciones_mMutexMapUpdate_LC_loopClosing.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraRecepcion.time_since_epoch()).count());
+    #endif
 
     // SE3 Pose Recovering. Sim3:[sR t;0 1] -> SE3:[R t/s;0 1]
     for(size_t i=0;i<vpKFs.size();i++)
@@ -1780,6 +1825,11 @@ void Optimizer::OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* p
 
     // TODO Check this changeindex
     pMap->IncreaseChangeIndex();
+    
+    #ifdef REGISTER_MMUTEXMAPUPDATE
+        std::chrono::steady_clock::time_point muestraLiberacion = std::chrono::steady_clock::now();
+        listaLiberaciones_mMutexMapUpdate_LC_loopClosing.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraLiberacion.time_since_epoch()).count());
+    #endif
 }
 
 void Optimizer::OptimizeEssentialGraph(KeyFrame* pCurKF, vector<KeyFrame*> &vpFixedKFs, vector<KeyFrame*> &vpFixedCorrectedKFs,
@@ -2054,7 +2104,17 @@ void Optimizer::OptimizeEssentialGraph(KeyFrame* pCurKF, vector<KeyFrame*> &vpFi
     optimizer.initializeOptimization();
     optimizer.optimize(20);
 
+    #ifdef REGISTER_MMUTEXMAPUPDATE
+        std::chrono::steady_clock::time_point muestraSolicitud = std::chrono::steady_clock::now();
+        listaSolicitudes_mMutexMapUpdate_LC_mergeLocal2.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraSolicitud.time_since_epoch()).count());
+    #endif
+
     unique_lock<mutex> lock(pMap->mMutexMapUpdate);
+
+    #ifdef REGISTER_MMUTEXMAPUPDATE
+        std::chrono::steady_clock::time_point muestraRecepcion = std::chrono::steady_clock::now();
+        listaRecepciones_mMutexMapUpdate_LC_mergeLocal2.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraRecepcion.time_since_epoch()).count());
+    #endif
 
     // SE3 Pose Recovering. Sim3:[sR t;0 1] -> SE3:[R t/s;0 1]
     for(KeyFrame* pKFi : vpNonFixedKFs)
@@ -2110,6 +2170,10 @@ void Optimizer::OptimizeEssentialGraph(KeyFrame* pCurKF, vector<KeyFrame*> &vpFi
         }
 
     }
+    #ifdef REGISTER_MMUTEXMAPUPDATE
+        std::chrono::steady_clock::time_point muestraLiberacion = std::chrono::steady_clock::now();
+        listaLiberaciones_mMutexMapUpdate_LC_mergeLocal2.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraLiberacion.time_since_epoch()).count());
+    #endif
 }
 
 int Optimizer::OptimizeSim3(KeyFrame *pKF1, KeyFrame *pKF2, vector<MapPoint *> &vpMatches1, g2o::Sim3 &g2oS12, const float th2,
@@ -3821,8 +3885,18 @@ void Optimizer::LocalBundleAdjustment(KeyFrame* pMainKF,vector<KeyFrame*> vpAdju
 
     Verbose::PrintMess("[BA]: Second optimization, there are " + to_string(badMonoMP) + " monocular and " + to_string(badStereoMP) + " sterero bad edges", Verbose::VERBOSITY_DEBUG);
 
+    #ifdef REGISTER_MMUTEXMAPUPDATE
+      std::chrono::steady_clock::time_point muestraSolicitud = std::chrono::steady_clock::now();
+      listaSolicitudes_mMutexMapUpdate_LC_mergeLocal.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraSolicitud.time_since_epoch()).count());
+    #endif
+
     // Get Map Mutex
     unique_lock<mutex> lock(pMainKF->GetMap()->mMutexMapUpdate);
+
+    #ifdef REGISTER_MMUTEXMAPUPDATE
+      std::chrono::steady_clock::time_point muestraRecepcion = std::chrono::steady_clock::now();
+      listaRecepciones_mMutexMapUpdate_LC_mergeLocal.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraRecepcion.time_since_epoch()).count());
+    #endif
 
     if(!vToErase.empty())
     {
@@ -3942,6 +4016,10 @@ void Optimizer::LocalBundleAdjustment(KeyFrame* pMainKF,vector<KeyFrame*> vpAdju
         pMPi->UpdateNormalAndDepth();
 
     }
+    #ifdef REGISTER_MMUTEXMAPUPDATE
+      std::chrono::steady_clock::time_point muestraLiberacion = std::chrono::steady_clock::now();
+      listaLiberaciones_mMutexMapUpdate_LC_mergeLocal.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraLiberacion.time_since_epoch()).count());
+    #endif
 }
 
 

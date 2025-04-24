@@ -33,6 +33,7 @@
 #include <mutex>
 #include "Thirdparty/g2o/g2o/types/types_seven_dof_expmap.h"
 
+
 namespace ORB_SLAM3
 {
 
@@ -51,6 +52,24 @@ public:
         Eigen::aligned_allocator<std::pair<KeyFrame* const, g2o::Sim3> > > KeyFrameAndPose;
 
 public:
+
+    
+  #ifdef REGISTER_MMUTEXMAPUPDATE
+    vector<double> listaSolicitudes_mMutexMapUpdate_MergeLocal_mapUpdate;
+    vector<double> listaRecepciones_mMutexMapUpdate_MergeLocal_mapUpdate;
+    vector<double> listaLiberaciones_mMutexMapUpdate_MergeLocal_mapUpdate;
+    
+    vector<double> listaSolicitudes_mMutexMapUpdate_MergeLocal_mapCurrent;
+    vector<double> listaRecepciones_mMutexMapUpdate_MergeLocal_mapCurrent;
+    vector<double> listaLiberaciones_mMutexMapUpdate_MergeLocal_mapCurrent;
+    
+    vector<double> listaSolicitudes_mMutexMapUpdate_CorrectLoop;
+    vector<double> listaRecepciones_mMutexMapUpdate_CorrectLoop;
+    vector<double> listaLiberaciones_mMutexMapUpdate_CorrectLoop;
+    
+    
+    vector<double> getMetricasMMutexMapUpdate(int id);
+  #endif
 
     LoopClosing(Atlas* pAtlas, KeyFrameDatabase* pDB, ORBVocabulary* pVoc,const bool bFixScale, const bool bActiveLC);
 

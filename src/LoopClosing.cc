@@ -31,6 +31,30 @@
 
 namespace ORB_SLAM3
 {
+#ifdef REGISTER_MMUTEXMAPUPDATE
+vector<double> LoopClosing::getMetricasMMutexMapUpdate(int id){
+    if (id == 0){
+        return listaSolicitudes_mMutexMapUpdate_MergeLocal_mapUpdate;
+    } else if (id == 1) {
+        return listaRecepciones_mMutexMapUpdate_MergeLocal_mapUpdate;
+    } else if (id == 2) {
+        return listaLiberaciones_mMutexMapUpdate_MergeLocal_mapUpdate;
+    } else if (id == 3) {
+        return listaSolicitudes_mMutexMapUpdate_MergeLocal_mapCurrent;
+    } else if (id == 4) {
+        return listaRecepciones_mMutexMapUpdate_MergeLocal_mapCurrent;
+    } else if (id == 5) {
+        return listaLiberaciones_mMutexMapUpdate_MergeLocal_mapCurrent;
+    } else if (id == 6) {
+        return listaSolicitudes_mMutexMapUpdate_CorrectLoop;
+    } else if (id == 7) {
+        return listaRecepciones_mMutexMapUpdate_CorrectLoop;
+    } else {
+        return listaLiberaciones_mMutexMapUpdate_CorrectLoop;
+
+    }
+}
+#endif
 
 LoopClosing::LoopClosing(Atlas *pAtlas, KeyFrameDatabase *pDB, ORBVocabulary *pVoc, const bool bFixScale, const bool bActiveLC):
     mbResetRequested(false), mbResetActiveMapRequested(false), mbFinishRequested(false), mbFinished(true), mpAtlas(pAtlas),
@@ -315,7 +339,6 @@ void LoopClosing::Run()
 
         usleep(5000);
     }
-
     SetFinish();
 }
 
@@ -1064,9 +1087,18 @@ void LoopClosing::CorrectLoop()
 #endif
 
     {
+        #ifdef REGISTER_MMUTEXMAPUPDATE
+            std::chrono::steady_clock::time_point muestraSolicitud = std::chrono::steady_clock::now();
+            listaSolicitudes_mMutexMapUpdate_CorrectLoop.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraSolicitud.time_since_epoch()).count());
+        #endif
+
         // Get Map Mutex
         unique_lock<mutex> lock(pLoopMap->mMutexMapUpdate);
 
+        #ifdef REGISTER_MMUTEXMAPUPDATE
+            std::chrono::steady_clock::time_point muestraRecepcion = std::chrono::steady_clock::now();
+            listaRecepciones_mMutexMapUpdate_CorrectLoop.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraRecepcion.time_since_epoch()).count());
+        #endif
         const bool bImuInit = pLoopMap->isImuInitialized();
 
         for(vector<KeyFrame*>::iterator vit=mvpCurrentConnectedKFs.begin(), vend=mvpCurrentConnectedKFs.end(); vit!=vend; vit++)
@@ -1159,6 +1191,10 @@ void LoopClosing::CorrectLoop()
             }
         }
         //cout << "LC: end replacing duplicated" << endl;
+        #ifdef REGISTER_MMUTEXMAPUPDATE
+            std::chrono::steady_clock::time_point muestraLiberacion = std::chrono::steady_clock::now();
+            listaLiberaciones_mMutexMapUpdate_CorrectLoop.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraLiberacion.time_since_epoch()).count());
+        #endif
     }
 
     // Project MapPoints observed in the neighborhood of the loop keyframe
@@ -1539,9 +1575,22 @@ void LoopClosing::MergeLocal()
     }*/
 
     {
+        #ifdef REGISTER_MMUTEXMAPUPDATE
+            std::chrono::steady_clock::time_point muestraSolicitud = std::chrono::steady_clock::now();
+            listaSolicitudes_mMutexMapUpdate_MergeLocal_mapCurrent.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraSolicitud.time_since_epoch()).count());
+        #endif
         unique_lock<mutex> currentLock(pCurrentMap->mMutexMapUpdate); // We update the current map with the Merge information
+        #ifdef REGISTER_MMUTEXMAPUPDATE
+            std::chrono::steady_clock::time_point muestraRecepcion = std::chrono::steady_clock::now();
+            listaRecepciones_mMutexMapUpdate_MergeLocal_mapCurrent.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraRecepcion.time_since_epoch()).count());
+            muestraSolicitud = std::chrono::steady_clock::now();
+            listaSolicitudes_mMutexMapUpdate_MergeLocal_mapUpdate.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraSolicitud.time_since_epoch()).count());
+        #endif
         unique_lock<mutex> mergeLock(pMergeMap->mMutexMapUpdate); // We remove the Kfs and MPs in the merged area from the old map
-
+        #ifdef REGISTER_MMUTEXMAPUPDATE
+            muestraRecepcion = std::chrono::steady_clock::now();
+            listaRecepciones_mMutexMapUpdate_MergeLocal_mapUpdate.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraRecepcion.time_since_epoch()).count());
+            #endif
         //std::cout << "Merge local window: " << spLocalWindowKFs.size() << std::endl;
         //std::cout << "[Merge]: init merging maps " << std::endl;
         for(KeyFrame* pKFi : spLocalWindowKFs)
@@ -1587,6 +1636,12 @@ void LoopClosing::MergeLocal()
         pMergeMap->IncreaseChangeIndex();
         //TODO for debug
         pMergeMap->ChangeId(pCurrentMap->GetId());
+
+        #ifdef REGISTER_MMUTEXMAPUPDATE
+            std::chrono::steady_clock::time_point muestraLiberacion = std::chrono::steady_clock::now();
+            listaLiberaciones_mMutexMapUpdate_MergeLocal_mapUpdate.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraLiberacion.time_since_epoch()).count());
+            listaLiberaciones_mMutexMapUpdate_MergeLocal_mapCurrent.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraLiberacion.time_since_epoch()).count());
+        #endif
 
         //std::cout << "[Merge]: merging maps finished" << std::endl;
     }
@@ -2579,6 +2634,8 @@ bool LoopClosing::isFinished()
     unique_lock<mutex> lock(mMutexFinish);
     return mbFinished;
 }
+
+
 
 
 } //namespace ORB_SLAM

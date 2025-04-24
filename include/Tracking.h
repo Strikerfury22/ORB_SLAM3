@@ -115,6 +115,12 @@ public:
     bool stopRequested();
 #endif
 
+#ifdef REGISTER_MMUTEXMAPUPDATE
+  vector<double> listaSolicitudes_mMutexMapUpdate;
+  vector<double> listaRecepciones_mMutexMapUpdate;
+  vector<double> listaLiberaciones_mMutexMapUpdate;
+  vector<double> getMetricasMMutexMapUpdate(int id);
+#endif
 public:
 
     // Tracking states
