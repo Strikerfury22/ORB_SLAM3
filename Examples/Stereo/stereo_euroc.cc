@@ -345,7 +345,7 @@ int main(int argc, char **argv)
         
         std::chrono::steady_clock::time_point initCarga, finCarga;  //finCarga es el timestamp en el que la anterior imagen llegó de la cámara
                                                                     //initCarga es el timestamp en el que la imagen actual llegó de la cámara
-                                                                    
+        SLAM.getMPTracker()->setCurrentFramesSize(num_tokens_pipeline); //Inicializamos la estructura para varios mCurrentFrame                                       
         std::cout << "Inicia la pipeline" << std::endl;
         tbb::parallel_pipeline(num_tokens_pipeline,
             //Dummy stage to stablish the order of the frames for the parallel stages
@@ -360,6 +360,9 @@ int main(int argc, char **argv)
                     fc.stop();
                     return -1;
                 }
+                std::cout << "-----------------------------" << std::endl;
+                std::cout << "Loaded image: " << n_image << "/" << nImages[seq]-1 << std::endl;
+                std::cout << "-----------------------------" << std::endl;
                 //finCarga = std::chrono::steady_clock::now(); //Para la simulación de FPS de la cámara
                 return n_image++;
             }) & 
@@ -446,8 +449,17 @@ int main(int argc, char **argv)
                 return n_image;
             }) &
             // Last stage ORB
+            #ifdef MAKE_LAST_STAGE_PARALLEL
+            tbb::make_filter<int, void>(tbb::filter_mode::parallel,
+            [&SLAM, &vTimesTrack, &frames, seq, &ptimer, &vTimesTrack, &times_load, &roulette_size](int n_image) {    
+            #else
             tbb::make_filter<int, void>(tbb::filter_mode::serial_in_order,
             [&SLAM, &vTimesTrack, &frames, seq, &ptimer, &vTimesTrack, &times_load, &roulette_size](int n_image) {
+            #endif
+                int posicion = SLAM.getMPTracker()->assignSpaceCurrentFrames(frames[n_image % roulette_size]);
+                if (posicion == -1){
+                    std::cout << "Australopitecus" << std::endl;
+                }
                 #ifndef REGISTER_TOTAL_LATENCY
                     ptimer.start_pipeline(n_image, 2);
                 #endif
@@ -457,8 +469,11 @@ int main(int argc, char **argv)
                         std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
                     #endif
                 #endif
+                std::cout << "Entra en TrackFrame." << std::endl;
 
-                SLAM.TrackFrame(frames[n_image % roulette_size]);
+                SLAM.TrackFrame(frames[n_image % roulette_size],posicion);
+                
+                std::cout << "Sale de TrackFrame." << std::endl;
 
                 #ifdef MEDIR_TIEMPO_SECCIONES
                     #ifdef REGISTER_SECTION_LATENCY
@@ -484,6 +499,8 @@ int main(int argc, char **argv)
                 #else
                     ptimer.end_pipeline(n_image, 0);
                 #endif
+                std::cout << "Fin de la última etapa." << std::endl;
+                SLAM.getMPTracker()->freeSpaceCurrentFrames(posicion);
             })); //END OF PIPELINE
             std::cout << "Acaba la pipeline" << std::endl;
         if(seq < num_seq - 1)

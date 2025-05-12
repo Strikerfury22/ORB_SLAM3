@@ -5,7 +5,7 @@ else
   #echo $myFreq
   sudo cpupower -c all frequency-set -d 4000MHz -u 4000MHz
   sudo cpupower monitor -c all --policy
-  ./my_launch_files/hoGAZa/launch_calls_euroc.sh MH01 8 3 ${1}_4000MHz
-  #./my_launch_files/hoGAZa/launch_calls_euroc.sh MH01 8 0 ${1}_4000MHz
+  ./my_launch_files/hoGAZa/launch_calls_euroc.sh MH01 8 3 ${1}_4000MHz_full_latency
+  ./my_launch_files/hoGAZa/launch_calls_euroc.sh MH01 8 0 ${1}_4000MHz_latency
   sudo cpupower -c all frequency-set -d 800MHz -u 4000MHz
 fi

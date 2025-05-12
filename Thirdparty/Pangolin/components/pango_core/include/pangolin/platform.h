@@ -42,9 +42,10 @@
 
 #ifdef _MSC_VER
 #   define __thread __declspec(thread)
+#   include <pangolin/pangolin_export.h>
+#else
+#   define PANGOLIN_EXPORT
 #endif //_MSVC_
-
-#define PANGOLIN_EXPORT
 
 // HOST / DEVICE Annotations
 #ifdef __CUDACC__

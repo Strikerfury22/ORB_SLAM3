@@ -121,7 +121,7 @@ public:
 
     //Functions that sub-divide TrackStereo into two tasks for pipelining
     Frame GenerateFrame(const int n_image, const cv::Mat &imLeft, const cv::Mat &imRight, ORBextractor* ORBextractorLeft, ORBextractor* ORBextractorRight, const double &timestamp, const vector<IMU::Point>& vImuMeas = vector<IMU::Point>(), string filename="");
-    Sophus::SE3f TrackFrame(Frame& frame);
+    Sophus::SE3f TrackFrame(Frame& frame, int posicion);
 
     // Process the given rgbd frame. Depthmap must be registered to the RGB frame.
     // Input image: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
@@ -207,6 +207,10 @@ public:
     void InsertTrackTime(double& time);
     void InsertVoidFrameTime();
 #endif
+
+//////////////////////Añadido 29_04_2025
+Tracking* getMPTracker();
+////////////////////////////////////////
 
 private:
 

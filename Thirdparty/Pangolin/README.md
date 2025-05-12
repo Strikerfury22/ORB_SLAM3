@@ -89,9 +89,6 @@ cmake --build build
 cmake --build build -t pypangolin_pip_install
 
 # Run me some tests! (Requires Catch2 which must be manually installed on Ubuntu.)
-cmake -B build -G Ninja -D BUILD_TESTS=ON
-cmake --build build
-cd build
 ctest
 ```
 

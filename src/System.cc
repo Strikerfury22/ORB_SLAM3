@@ -408,7 +408,7 @@ Frame System::GenerateFrame(const int n_image, const cv::Mat &imLeft, const cv::
     return mpTracker->BuildFrame(n_image, imLeftToFeed,imRightToFeed,timestamp,filename,ORBextractorLeft,ORBextractorRight, tr);
 }
 
-Sophus::SE3f System::TrackFrame(Frame& frame)
+Sophus::SE3f System::TrackFrame(Frame& frame, int posicion)
 {
     #ifdef REGISTER_TIMES
         #ifdef REGISTER_SECTION_LATENCY
@@ -464,16 +464,21 @@ Sophus::SE3f System::TrackFrame(Frame& frame)
         #endif
     #endif
 
-    mpTracker->mCurrentFrame = frame;
+    //mpTracker->mCurrentFrame = frame;
 
-    mpTracker->Track();
+    bool result = mpTracker->Track(posicion);
+    if (result){
+        unique_lock<mutex> lock2(mMutexState);
+        //std::cout << "Sección mMutexStat" << std::endl;
+        mTrackingState = mpTracker->mState;
+        //std::cout << "Registrado mState del tracker" << std::endl;
+        mTrackedMapPoints = frame.mvpMapPoints; //mpTracker->mCurrentFrame
+        //std::cout << "Registrados mvpMapPoints del frame procesado por este token" << std::endl;
+        mTrackedKeyPointsUn = frame.mvKeysUn; //mpTracker->mCurrentFrame
+        //std::cout << "Registrados mvKeysUn del frame procesado por este token" << std::endl;
+    }
 
-    unique_lock<mutex> lock2(mMutexState);
-    mTrackingState = mpTracker->mState;
-    mTrackedMapPoints = mpTracker->mCurrentFrame.mvpMapPoints;
-    mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;
-
-    return mpTracker->mCurrentFrame.GetPose();
+    return frame.GetPose(); //mpTracker->mCurrentFrame
 }
 
 Sophus::SE3f System::TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const double &timestamp, const vector<IMU::Point>& vImuMeas, string filename)
@@ -1731,5 +1736,8 @@ string System::CalculateCheckSum(string filename, int type)
     return checksum;
 }
 
+Tracking* System::getMPTracker(){
+    return mpTracker;
+}
 } //namespace ORB_SLAM
 

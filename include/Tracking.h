@@ -141,6 +141,15 @@ public:
     int mSensor;
 
     // Current Frame
+    //////////////////////Added 29_04_2025
+    std::vector<Frame*> eCurrentFrames;
+    std::vector<bool> eEspaciosDisponibles; 
+    std::mutex mMutexCurrentFrames;
+    void setCurrentFramesSize(int numTokens);
+    int assignSpaceCurrentFrames(Frame& frame);
+    bool freeSpaceCurrentFrames(int posicion);
+    ///////////////////////////////////////////
+    
     Frame mCurrentFrame;
     Frame mLastFrame;
 
@@ -377,7 +386,7 @@ protected:
 
 public:
     // Main tracking function. It is independent of the input sensor.
-    void Track();
+    bool Track(int posicion);//Frame& frameActual);
 
     Frame BuildFrame(const int n_image, const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp, string filename, ORBextractor* ORBextractorLeft, ORBextractor* ORBextractorRight, double tr);
     

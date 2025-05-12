@@ -6,7 +6,7 @@ set -e
 MANAGERS=(dnf apt port vcpkg brew pacman)
 MANAGER=""
 LIST=0
-VERBOSE=1
+VERBOSE=0
 DRYRUN=0
 UPDATE=0
 REQUIRED_RECOMMENDED_ALL=1
@@ -121,17 +121,17 @@ if [[ "$MANAGER" == "apt" ]]; then
     if ((DRYRUN > 0));  then PKGS_OPTIONS+=(--dry-run); SUDO=""; fi
     PKGS_REQUIRED+=(libgl1-mesa-dev libwayland-dev libxkbcommon-dev wayland-protocols libegl1-mesa-dev)
     PKGS_REQUIRED+=(libc++-dev libglew-dev libeigen3-dev cmake g++ ninja-build)
-    PKGS_RECOMMENDED+=(libjpeg-dev libpng-dev catch2)
+    PKGS_RECOMMENDED+=(libjpeg-dev libpng-dev)
     PKGS_RECOMMENDED+=(libavcodec-dev libavutil-dev libavformat-dev libswscale-dev libavdevice-dev)
-    PKGS_ALL+=(libdc1394-dev libraw1394-dev libopenni-dev python3-dev python3-distutils)
+    PKGS_ALL+=(libdc1394-22-dev libraw1394-dev libopenni-dev python3.9-dev python3-distutils)
 elif [[ "$MANAGER" == "dnf" ]]; then
     SUDO="sudo"
     PKGS_UPDATE="dnf check-update"
     PKGS_OPTIONS+=(install)
     PKGS_REQUIRED+=(wayland-devel libxkbcommon-devel g++ ninja-build)
     PKGS_REQUIRED+=(glew-devel eigen3 cmake)
-    PKGS_RECOMMENDED+=(libjpeg-devel libpng-devel OpenEXR-devel catch2)
-    PKGS_ALL+=(libdc1394-devel libraw1394-devel librealsense-devel openni-devel)
+    PKGS_RECOMMENDED+=(libjpeg-devel libpng-devel OpenEXR-devel)
+    PKGS_ALL+=(libdc1394-22-devel libraw1394-devel librealsense-devel openni-devel)
     if ((DRYRUN > 0));  then
         MANAGER="echo $MANAGER"
         SUDO=""
@@ -142,7 +142,7 @@ elif [[ "$MANAGER" == "pacman" ]]; then
     PKGS_OPTIONS+=(-Syu)
     PKGS_REQUIRED+=(mesa wayland libxkbcommon wayland-protocols libc++ glew eigen cmake gcc ninja)
     PKGS_RECOMMENDED+=(libjpeg-turbo libpng ffmpeg)
-    PKGS_ALL+=(libdc1394 libraw1394 openni python3 python-distutils-extra)
+    PKGS_ALL+=(libdc1394 libraw1394 openni python39 python-distutils-extra)
     if ((DRYRUN > 0));  then
         MANAGER="echo $MANAGER"
         SUDO=""

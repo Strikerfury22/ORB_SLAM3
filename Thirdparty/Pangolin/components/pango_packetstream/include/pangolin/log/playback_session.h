@@ -9,7 +9,7 @@
 
 namespace pangolin {
 
-struct Params;
+class Params;
 
 class PlaybackSession
 {

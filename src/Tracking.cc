@@ -1613,7 +1613,8 @@ Sophus::SE3f Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat 
 #endif
 
     //cout << "Tracking start" << endl;
-    Track();
+    std::cout << "Track a parte 2" << std::endl;
+    Track(-1);
     //cout << "Tracking end" << endl;
 
     return mCurrentFrame.GetPose();
@@ -1657,9 +1658,9 @@ Frame Tracking::BuildFrame(const int n_image, const cv::Mat &imRectLeft,const cv
     Frame retFrame;
 
     if (mSensor == System::STEREO && !mpCamera2)
-        retFrame = Frame(n_image, mImGray,imGrayRight,timestamp,ORBextractorLeft,ORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera);
+        retFrame = Frame(n_image, mImGray,imGrayRight,timestamp,ORBextractorLeft,ORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera); //PinHole Model
     else if(mSensor == System::STEREO && mpCamera2)
-        retFrame = Frame(mImGray,imGrayRight,timestamp,ORBextractorLeft,ORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera,mpCamera2,mTlr);
+        retFrame = Frame(mImGray,imGrayRight,timestamp,ORBextractorLeft,ORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera,mpCamera2,mTlr); //KanalaBrandt Model
     else if(mSensor == System::IMU_STEREO && !mpCamera2)
         {std::cout << "IMU_STEREO NOT IMPLEMENTED\n";
         retFrame = Frame();}
@@ -1722,8 +1723,8 @@ Sophus::SE3f Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, co
     vdORBExtract_ms.push_back(mCurrentFrame.mTimeORB_Ext);
     #endif
 #endif
-
-    Track();
+    std::cout << "Track a parte 1" << std::endl;
+    Track(-1);
 
     return mCurrentFrame.GetPose();
 }
@@ -1777,7 +1778,8 @@ Sophus::SE3f Tracking::GrabImageMonocular(const cv::Mat &im, const double &times
 #endif
 
     lastID = mCurrentFrame.mnId;
-    Track();
+    std::cout << "Track a parte 3" << std::endl;
+    Track(-1);
 
     return mCurrentFrame.GetPose();
 }
@@ -1959,7 +1961,8 @@ void Tracking::ResetFrameIMU()
 }
 
 
-void Tracking::Track()
+//Falta añadir los casos de return false para la versión paralela (caso de que se descarta).
+bool Tracking::Track(int posicion)
 {
     if (bStepByStep)
     {
@@ -1973,7 +1976,7 @@ void Tracking::Track()
     {
         cout << "TRACK: Reset map because local mapper set the bad imu flag " << endl;
         mpSystem->ResetActiveMap();
-        return;
+        return true;
     }
 
     Map* pCurrentMap = mpAtlas->GetCurrentMap();
@@ -1984,15 +1987,24 @@ void Tracking::Track()
 
     if(mState!=NO_IMAGES_YET)
     {
-        if(mLastFrame.mTimeStamp>mCurrentFrame.mTimeStamp)
+        
+        #ifdef MAKE_LAST_STAGE_PARALLEL
+        if(mLastFrame.mTimeStamp>eCurrentFrames[posicion]->mTimeStamp)
+        {
+            cerr << "++++++++++++++++++++++++++++++++++++++++Entrada a TRACK(): Frame antiguo detectado." << endl;
+            unique_lock<mutex> lock(mMutexImuQueue);
+            return false;
+        }
+        #else
+        if(mLastFrame.mTimeStamp>eCurrentFrames[posicion]->mTimeStamp)
         {
             cerr << "ERROR: Frame with a timestamp older than previous frame detected!" << endl;
             unique_lock<mutex> lock(mMutexImuQueue);
             mlQueueImuData.clear();
             CreateMapInAtlas();
-            return;
+            return true;
         }
-        else if(mCurrentFrame.mTimeStamp>mLastFrame.mTimeStamp+1.0)
+        else if(eCurrentFrames[posicion]->mTimeStamp>mLastFrame.mTimeStamp+1.0)
         {
             // cout << mCurrentFrame.mTimeStamp << ", " << mLastFrame.mTimeStamp << endl;
             // cout << "id last: " << mLastFrame.mnId << "    id curr: " << mCurrentFrame.mnId << endl;
@@ -2016,15 +2028,16 @@ void Tracking::Track()
                     cout << "Timestamp jump detected, before IMU initialization. Reseting..." << endl;
                     mpSystem->ResetActiveMap();
                 }
-                return;
+                return true;
             }
 
         }
+        #endif
     }
 
 
     if ((mSensor == System::IMU_MONOCULAR || mSensor == System::IMU_STEREO || mSensor == System::IMU_RGBD) && mpLastKeyFrame)
-        mCurrentFrame.SetNewBias(mpLastKeyFrame->GetImuBias());
+    eCurrentFrames[posicion]->SetNewBias(mpLastKeyFrame->GetImuBias());
 
     if(mState==NO_IMAGES_YET)
     {
@@ -2055,7 +2068,15 @@ void Tracking::Track()
       std::chrono::steady_clock::time_point muestraRecepcion = std::chrono::steady_clock::now();
       listaRecepciones_mMutexMapUpdate.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraRecepcion.time_since_epoch()).count());
     #endif
-    
+    #ifdef MAKE_LAST_STAGE_PARALLEL
+    if(mLastFrame.mTimeStamp>eCurrentFrames[posicion]->mTimeStamp)
+    {
+        cerr << "------------------------------Mutex mMutexMapUpdate: Frame antiguo detectado." << endl;
+        unique_lock<mutex> lock(mMutexImuQueue);
+        return false;
+    }
+    #endif
+    mCurrentFrame = Frame(*eCurrentFrames[posicion]); //No servirá si paralelizamos esta sección. No creo que se pueda, pero sería el 3º paso de las pruebas.
     mbMapUpdated = false;
 
     int nCurMapChangeIndex = pCurrentMap->GetMapChangeIndex();
@@ -2092,7 +2113,8 @@ void Tracking::Track()
         if(mState!=OK) // If rightly initialized, mState=OK
         {
             mLastFrame = Frame(mCurrentFrame);
-            return;
+            *eCurrentFrames[posicion] = Frame(mCurrentFrame);
+            return true;
         }
 
         if(mpAtlas->GetAllMaps().size() == 1)
@@ -2210,7 +2232,8 @@ void Tracking::Track()
 
                     Verbose::PrintMess("done", Verbose::VERBOSITY_NORMAL);
 
-                    return;
+                    *eCurrentFrames[posicion] = Frame(mCurrentFrame);
+                    return true;
                 }
             }
 
@@ -2449,7 +2472,7 @@ void Tracking::Track()
             for(int i=0; i<mCurrentFrame.N;i++)
             {
                 if(mCurrentFrame.mvpMapPoints[i] && mCurrentFrame.mvbOutlier[i])
-                    mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
+                mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
             }
             #ifdef REGISTER_TIMES
                 #ifdef REGISTER_SECTION_LATENCY
@@ -2472,14 +2495,16 @@ void Tracking::Track()
                   std::chrono::steady_clock::time_point muestraLiberacion = std::chrono::steady_clock::now();
                   listaLiberaciones_mMutexMapUpdate.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraLiberacion.time_since_epoch()).count());
                 #endif
-                return;
+                *eCurrentFrames[posicion] = Frame(mCurrentFrame);
+                return true;
             }
             if (mSensor == System::IMU_MONOCULAR || mSensor == System::IMU_STEREO || mSensor == System::IMU_RGBD)
                 if (!pCurrentMap->isImuInitialized())
                 {
                     Verbose::PrintMess("Track lost before IMU initialisation, reseting...", Verbose::VERBOSITY_QUIET);
                     mpSystem->ResetActiveMap();
-                    return;
+                    *eCurrentFrames[posicion] = Frame(mCurrentFrame);
+                    return true;
                 }
 
             CreateMapInAtlas();
@@ -2488,13 +2513,13 @@ void Tracking::Track()
               std::chrono::steady_clock::time_point muestraLiberacion = std::chrono::steady_clock::now();
               listaLiberaciones_mMutexMapUpdate.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraLiberacion.time_since_epoch()).count());
             #endif
-            return;
+            return true;
         }
 
         if(!mCurrentFrame.mpReferenceKF)
-            mCurrentFrame.mpReferenceKF = mpReferenceKF;
-
-        mLastFrame = Frame(mCurrentFrame);
+        mCurrentFrame.mpReferenceKF = mpReferenceKF;
+        *eCurrentFrames[posicion] = Frame(mCurrentFrame);
+        mLastFrame = Frame(*eCurrentFrames[posicion]);
     }
 
 
@@ -2503,13 +2528,15 @@ void Tracking::Track()
     if(mState==OK || mState==RECENTLY_LOST)
     {
         // Store frame pose information to retrieve the complete camera trajectory afterwards.
-        if(mCurrentFrame.isSet())
+        if(eCurrentFrames[posicion]->isSet())
         {
-            Sophus::SE3f Tcr_ = mCurrentFrame.GetPose() * mCurrentFrame.mpReferenceKF->GetPoseInverse();
+            std::cout << "Registrando Métricas de la llamada." << std::endl;
+            Sophus::SE3f Tcr_ = eCurrentFrames[posicion]->GetPose() * eCurrentFrames[posicion]->mpReferenceKF->GetPoseInverse();
             mlRelativeFramePoses.push_back(Tcr_);
-            mlpReferences.push_back(mCurrentFrame.mpReferenceKF);
-            mlFrameTimes.push_back(mCurrentFrame.mTimeStamp);
+            mlpReferences.push_back(eCurrentFrames[posicion]->mpReferenceKF);
+            mlFrameTimes.push_back(eCurrentFrames[posicion]->mTimeStamp);
             mlbLost.push_back(mState==LOST);
+            std::cout << "Métricas de la llamada registradas." << std::endl;
         }
         else
         {
@@ -2537,6 +2564,9 @@ void Tracking::Track()
       std::chrono::steady_clock::time_point muestraLiberacion = std::chrono::steady_clock::now();
       listaLiberaciones_mMutexMapUpdate.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraLiberacion.time_since_epoch()).count());
     #endif
+    
+    std::cout << "Saliendo de la sección crítica de mMutexMapUpdate." << std::endl;
+    return true;
 }
 
 
@@ -4375,4 +4405,36 @@ void Tracking::Release()
 }
 #endif
 
+
+//////////////////////Added 29_04_2025
+void Tracking::setCurrentFramesSize(int numTokens){
+    Frame* auxiliar = new Frame();
+    for (int i = 0; i < numTokens; ++i){
+        eCurrentFrames.push_back(auxiliar);
+        eEspaciosDisponibles.push_back(true);
+    }
+}
+
+int Tracking::assignSpaceCurrentFrames(Frame& frame){
+    unique_lock<mutex> lock(mMutexCurrentFrames);
+    for (int i = 0; i < eCurrentFrames.size(); ++i){
+        if (eEspaciosDisponibles[i]){
+            eCurrentFrames[i] = &frame;
+            eEspaciosDisponibles[i] = false;
+            return i;
+        }
+    }
+    std::cout << "¿Cómo puñetas no hay espacio?" << std::endl;
+    return -1;
+}
+
+bool Tracking::freeSpaceCurrentFrames(int posicion){
+    if (!eEspaciosDisponibles[posicion]){
+        eEspaciosDisponibles[posicion] = true;
+        return true;
+    }
+    std::cout << "Errr... Según mis datos esto ya estaba libre..." << std::endl;
+    return false;
+}
+///////////////////////////////////////////
 } //namespace ORB_SLAM
