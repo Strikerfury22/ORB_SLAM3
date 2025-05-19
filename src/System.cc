@@ -408,6 +408,91 @@ Frame System::GenerateFrame(const int n_image, const cv::Mat &imLeft, const cv::
     return mpTracker->BuildFrame(n_image, imLeftToFeed,imRightToFeed,timestamp,filename,ORBextractorLeft,ORBextractorRight, tr);
 }
 
+bool System::TrackFrame_part1(Frame& frame){
+    {
+        unique_lock<mutex> lock(mMutexMode);
+        if(mbActivateLocalizationMode)
+        {
+            mpLocalMapper->RequestStop();
+
+            // Wait until Local Mapping has effectively stopped
+            while(!mpLocalMapper->isStopped())
+            {
+                usleep(1000);
+            }
+
+            mpTracker->InformOnlyTracking(true);
+            mbActivateLocalizationMode = false;
+        }
+        if(mbDeactivateLocalizationMode)
+        {
+            mpTracker->InformOnlyTracking(false);
+            mpLocalMapper->Release();
+            mbDeactivateLocalizationMode = false;
+        }
+    }
+
+    // Check reset
+    {
+        unique_lock<mutex> lock(mMutexReset);
+        if(mbReset)
+        {
+            mpTracker->Reset();
+            mbReset = false;
+            mbResetActiveMap = false;
+        }
+        else if(mbResetActiveMap)
+        {
+            mpTracker->ResetActiveMap();
+            mbResetActiveMap = false;
+        }
+    }
+
+    //Times need to be pushed here because this function is sequential in the pipeline
+    #ifdef REGISTER_TIMES
+        #ifdef REGISTER_SECTION_LATENCY
+        mpTracker->vdORBExtract_ms.push_back(frame.mTimeORB_Ext);
+        mpTracker->vdStereoMatch_ms.push_back(frame.mTimeStereoMatch);
+        mpTracker->vdRectStereo_ms.push_back(frame.mTimeRectify);
+        #endif
+    #endif
+
+    //mpTracker->mCurrentFrame = frame;
+    bool continua = mpTracker->Track_part1(frame);
+    if (!continua){
+        // Caso de que el frame ya ha acabado de ser procesado por el Tracker en la parte 1.
+        unique_lock<mutex> lock2(mMutexState);
+        mTrackingState = mpTracker->mState;
+        mTrackedMapPoints = frame.mvpMapPoints;
+        mTrackedKeyPointsUn = frame.mvKeysUn;
+    }
+    return continua;
+}
+
+bool System::TrackFrame_part2(Frame& frame){
+    bool continua = mpTracker->Track_part2(frame);
+
+    if (!continua){
+        // Caso de que el frame ya ha acabado de ser procesado por el Tracker en la parte 1.
+        unique_lock<mutex> lock2(mMutexState);
+        mTrackingState = mpTracker->mState;
+        mTrackedMapPoints = frame.mvpMapPoints;
+        mTrackedKeyPointsUn = frame.mvKeysUn;
+    }
+    return continua;
+}
+
+Sophus::SE3f System::TrackFrame_part3(Frame& frame){
+    mpTracker->Track_part3(frame);
+
+    unique_lock<mutex> lock2(mMutexState);
+    mTrackingState = mpTracker->mState;
+    mTrackedMapPoints = frame.mvpMapPoints;
+    mTrackedKeyPointsUn = frame.mvKeysUn;
+
+    return frame.GetPose();
+}
+
 Sophus::SE3f System::TrackFrame(Frame& frame)
 {
     #ifdef REGISTER_TIMES

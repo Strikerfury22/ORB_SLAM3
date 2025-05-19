@@ -446,6 +446,7 @@ int main(int argc, char **argv)
                 return n_image;
             }) &
             // Last stage ORB
+            '''
             tbb::make_filter<int, void>(tbb::filter_mode::serial_in_order,
             [&SLAM, &vTimesTrack, &frames, seq, &ptimer, &vTimesTrack, &times_load, &roulette_size](int n_image) {
                 #ifndef REGISTER_TOTAL_LATENCY
@@ -466,7 +467,7 @@ int main(int argc, char **argv)
 
                         double t_track = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
                         vTimesTrack[n_image] += t_track;
-                        double ttrack = vTimesTrack[n_image]; //Doesn't work????
+                        double ttrack = vTimesTrack[n_image]; //Does not work????
                     #endif
 
                 #ifdef REGISTER_TIMES
@@ -484,7 +485,46 @@ int main(int argc, char **argv)
                 #else
                     ptimer.end_pipeline(n_image, 0);
                 #endif
-            })); //END OF PIPELINE
+            })
+        '''
+        tbb::make_filter<int, void>(tbb::filter_mode::serial_in_order,
+            [&SLAM, &vTimesTrack, &frames, seq, &ptimer, &vTimesTrack, &times_load, &roulette_size](int n_image) {
+
+                //Parte antes de la llamada al mutex
+                bool continua = SLAM.TrackFrame_part1(frames[n_image % roulette_size]);
+                
+                
+                if (continua){
+                    return n_image;
+                } else {
+                    return -1;
+                }
+            })
+        tbb::make_filter<int, void>(tbb::filter_mode::serial_in_order,
+            [&SLAM, &vTimesTrack, &frames, seq, &ptimer, &vTimesTrack, &times_load, &roulette_size](int n_image) {
+                if (n_image == -1){
+                    return -1;
+                }
+                // Parte con la llamada al mutex
+                bool continua = SLAM.TrackFrame_part2(frames[n_image % roulette_size]);
+
+                if (continua){
+                    return n_image;
+                } else {
+                    return -1;
+                }
+            })
+        tbb::make_filter<int, void>(tbb::filter_mode::serial_in_order,
+            [&SLAM, &vTimesTrack, &frames, seq, &ptimer, &vTimesTrack, &times_load, &roulette_size](int n_image) {
+                // Parte tras la llamada al mutex
+                if (n_image != -1){
+                    SLAM.TrackFrame_part3(frames[n_image % roulette_size]);
+                }
+                #ifdef REGISTER_TOTAL_LATENCY
+                    ptimer.end_pipeline(n_image, 0);
+                #endif
+            })
+        ); //END OF PIPELINE
             std::cout << "Acaba la pipeline" << std::endl;
         if(seq < num_seq - 1)
         {

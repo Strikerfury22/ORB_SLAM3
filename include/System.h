@@ -121,6 +121,10 @@ public:
 
     //Functions that sub-divide TrackStereo into two tasks for pipelining
     Frame GenerateFrame(const int n_image, const cv::Mat &imLeft, const cv::Mat &imRight, ORBextractor* ORBextractorLeft, ORBextractor* ORBextractorRight, const double &timestamp, const vector<IMU::Point>& vImuMeas = vector<IMU::Point>(), string filename="");
+    
+    bool TrackFrame_part1(Frame& frame);
+    bool TrackFrame_part2(Frame& frame);
+    Sophus::SE3f TrackFrame_part3(Frame& frame);
     Sophus::SE3f TrackFrame(Frame& frame);
 
     // Process the given rgbd frame. Depthmap must be registered to the RGB frame.

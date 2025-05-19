@@ -94,6 +94,7 @@ public:
         return mpLastKeyFrame;
     }
 
+    void CreateMapInAtlas_refVersion(Frame& theFrame);
     void CreateMapInAtlas();
     //std::mutex mMutexTracks;
 
@@ -207,6 +208,7 @@ public:
 protected:
 
     // Map initialization for stereo and RGB-D
+    void StereoInitialization_refVersion(Frame& theFrame);
     void StereoInitialization();
 
     // Map initialization for monocular
@@ -215,21 +217,31 @@ protected:
     void CreateInitialMapMonocular();
 
     void CheckReplacedInLastFrame();
+    bool TrackReferenceKeyFrame_refVersion(Frame& theFrame);
     bool TrackReferenceKeyFrame();
     void UpdateLastFrame();
+    bool TrackWithMotionModel_refVersion(Frame& theFrame);
     bool TrackWithMotionModel();
     bool PredictStateIMU();
 
+    Relocalization_refVersion(Frame& theFrame):
     bool Relocalization();
 
+    void UpdateLocalMap_refVersion(Frame& theFrame);
     void UpdateLocalMap();
+    void UpdateLocalPoints_refVersion(Frame& theFrame);
     void UpdateLocalPoints();
+    void UpdateLocalKeyFrames_refVersion(Frame& theFrame);
     void UpdateLocalKeyFrames();
 
+    bool TrackLocalMap_refVersion(Frame& theFrame);
     bool TrackLocalMap();
+    void SearchLocalPoints_refVersion(Frame& theFrame);
     void SearchLocalPoints();
 
+    bool NeedNewKeyFrame_refVersion(Frame& theFrame);
     bool NeedNewKeyFrame();
+    void CreateNewKeyFrame_refVersion(Frame& theFrame);
     void CreateNewKeyFrame();
 
     // Perform preintegration from last frame
@@ -378,6 +390,10 @@ protected:
 public:
     // Main tracking function. It is independent of the input sensor.
     void Track();
+
+    bool Track_part1(Frame& ourFrame_part1);
+    bool Track_part2(Frame& ourFrame_part2);
+    bool Track_part3(Frame& ourFrame_part3);
 
     Frame BuildFrame(const int n_image, const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp, string filename, ORBextractor* ORBextractorLeft, ORBextractor* ORBextractorRight, double tr);
     
