@@ -224,7 +224,7 @@ protected:
     bool TrackWithMotionModel();
     bool PredictStateIMU();
 
-    Relocalization_refVersion(Frame& theFrame):
+    bool Relocalization_refVersion(Frame& theFrame):
     bool Relocalization();
 
     void UpdateLocalMap_refVersion(Frame& theFrame);
