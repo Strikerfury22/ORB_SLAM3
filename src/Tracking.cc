@@ -34,6 +34,7 @@
 #include <mutex>
 #include <chrono>
 
+#include <cassert>
 
 using namespace std;
 
@@ -1981,11 +1982,6 @@ bool Tracking::Track_part1(Frame& ourFrame_part1){
         return false;
     }
 
-    Map* pCurrentMap = mpAtlas->GetCurrentMap();
-    if(!pCurrentMap)
-    {
-        cout << "ERROR: There is not an active map in the atlas" << endl;
-    }
 
     if(mState!=NO_IMAGES_YET)
     {
@@ -2058,6 +2054,11 @@ bool Tracking::Track_part2(Frame& ourFrame_part2){
       std::chrono::steady_clock::time_point muestraSolicitud = std::chrono::steady_clock::now();
       listaSolicitudes_mMutexMapUpdate.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraSolicitud.time_since_epoch()).count());
     #endif
+    Map* pCurrentMap = mpAtlas->GetCurrentMap();
+    if(!pCurrentMap)
+    {
+        cout << "ERROR: There is not an active map in the atlas" << endl;
+    }
     
     // Get Map Mutex -> Map cannot be changed
     unique_lock<mutex> lock(pCurrentMap->mMutexMapUpdate);

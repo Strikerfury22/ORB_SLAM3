@@ -393,7 +393,7 @@ public:
 
     bool Track_part1(Frame& ourFrame_part1);
     bool Track_part2(Frame& ourFrame_part2);
-    bool Track_part3(Frame& ourFrame_part3);
+    void Track_part3(Frame& ourFrame_part3);
 
     Frame BuildFrame(const int n_image, const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp, string filename, ORBextractor* ORBextractorLeft, ORBextractor* ORBextractorRight, double tr);
     
