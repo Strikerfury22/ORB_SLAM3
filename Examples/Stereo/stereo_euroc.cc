@@ -487,7 +487,7 @@ int main(int argc, char **argv)
                 #endif
             })
         */
-        tbb::make_filter<int, void>(tbb::filter_mode::serial_in_order,
+        tbb::make_filter<int, int>(tbb::filter_mode::serial_in_order,
             [&SLAM, &vTimesTrack, &frames, seq, &ptimer, &vTimesTrack, &times_load, &roulette_size](int n_image) {
 
                 //Parte antes de la llamada al mutex
@@ -500,7 +500,7 @@ int main(int argc, char **argv)
                     return -1;
                 }
             }) &
-        tbb::make_filter<int, void>(tbb::filter_mode::serial_in_order,
+        tbb::make_filter<int, int>(tbb::filter_mode::serial_in_order,
             [&SLAM, &vTimesTrack, &frames, seq, &ptimer, &vTimesTrack, &times_load, &roulette_size](int n_image) {
                 if (n_image == -1){
                     return -1;
