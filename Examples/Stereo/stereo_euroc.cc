@@ -446,7 +446,7 @@ int main(int argc, char **argv)
                 return n_image;
             }) &
             // Last stage ORB
-            '''
+            /*
             tbb::make_filter<int, void>(tbb::filter_mode::serial_in_order,
             [&SLAM, &vTimesTrack, &frames, seq, &ptimer, &vTimesTrack, &times_load, &roulette_size](int n_image) {
                 #ifndef REGISTER_TOTAL_LATENCY
@@ -486,7 +486,7 @@ int main(int argc, char **argv)
                     ptimer.end_pipeline(n_image, 0);
                 #endif
             })
-        '''
+        */
         tbb::make_filter<int, void>(tbb::filter_mode::serial_in_order,
             [&SLAM, &vTimesTrack, &frames, seq, &ptimer, &vTimesTrack, &times_load, &roulette_size](int n_image) {
 
@@ -499,7 +499,7 @@ int main(int argc, char **argv)
                 } else {
                     return -1;
                 }
-            })
+            }) &
         tbb::make_filter<int, void>(tbb::filter_mode::serial_in_order,
             [&SLAM, &vTimesTrack, &frames, seq, &ptimer, &vTimesTrack, &times_load, &roulette_size](int n_image) {
                 if (n_image == -1){
@@ -513,7 +513,7 @@ int main(int argc, char **argv)
                 } else {
                     return -1;
                 }
-            })
+            }) &
         tbb::make_filter<int, void>(tbb::filter_mode::serial_in_order,
             [&SLAM, &vTimesTrack, &frames, seq, &ptimer, &vTimesTrack, &times_load, &roulette_size](int n_image) {
                 // Parte tras la llamada al mutex
@@ -523,8 +523,7 @@ int main(int argc, char **argv)
                 #ifdef REGISTER_TOTAL_LATENCY
                     ptimer.end_pipeline(n_image, 0);
                 #endif
-            })
-        ); //END OF PIPELINE
+            })); //END OF PIPELINE
             std::cout << "Acaba la pipeline" << std::endl;
         if(seq < num_seq - 1)
         {

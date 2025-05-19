@@ -2002,7 +2002,7 @@ bool Tracking::Track_part1(Frame& ourFrame_part1){
             // cout << mCurrentFrame.mTimeStamp << ", " << mLastFrame.mTimeStamp << endl;
             // cout << "id last: " << mLastFrame.mnId << "    id curr: " << mCurrentFrame.mnId << endl;
             assert(void("Si esto salta, el Atlas es inercial..."),!mpAtlas->isInertial())
-            '''
+            /*
             if(mpAtlas->isInertial())
             {
 
@@ -2025,14 +2025,14 @@ bool Tracking::Track_part1(Frame& ourFrame_part1){
                 }
                 return false;
             }
-            '''
+            */
         }
     }
 
-    '''
+    /*
     if ((mSensor == System::IMU_MONOCULAR || mSensor == System::IMU_STEREO || mSensor == System::IMU_RGBD) && mpLastKeyFrame)
         mCurrentFrame.SetNewBias(mpLastKeyFrame->GetImuBias());
-    '''
+    */
     if(mState==NO_IMAGES_YET)
     {
         mState = NOT_INITIALIZED;
@@ -2040,7 +2040,7 @@ bool Tracking::Track_part1(Frame& ourFrame_part1){
 
     mLastProcessedState=mState;
 
-    '''
+    /*
     if ((mSensor == System::IMU_MONOCULAR || mSensor == System::IMU_STEREO || mSensor == System::IMU_RGBD) && !mbCreatedMap)
     {
 
@@ -2048,7 +2048,7 @@ bool Tracking::Track_part1(Frame& ourFrame_part1){
 
 
     }
-    '''
+    */
     mbCreatedMap = false;
     return true;
 }
@@ -2227,7 +2227,7 @@ bool Tracking::Track_part2(Frame& ourFrame_part2){
             }
         }
 
-        '''
+        /*
         }
         else
         {
@@ -2300,7 +2300,7 @@ bool Tracking::Track_part2(Frame& ourFrame_part2){
                 }
             }
         }
-        '''
+        */
 
         if(!ourFrame_part2.mpReferenceKF)
             ourFrame_part2.mpReferenceKF = mpReferenceKF;
@@ -2330,7 +2330,7 @@ bool Tracking::Track_part2(Frame& ourFrame_part2){
             }
             if(!bOK)
                 cout << "Fail to track local map!" << endl;
-        '''        
+        /*        
         }
         else
         {
@@ -2340,7 +2340,7 @@ bool Tracking::Track_part2(Frame& ourFrame_part2){
             if(bOK && !mbVO)
                 bOK = TrackLocalMap();
         }
-        '''
+        */
         if(bOK)
             mState = OK;
         else if (mState == OK)
@@ -2353,7 +2353,7 @@ bool Tracking::Track_part2(Frame& ourFrame_part2){
             //}
         }
 
-        '''
+        /*
         // Save frame if recent relocalization, since they are used for IMU reset (as we are making copy, it shluld be once mCurrFrame is completely modified)
         if((ourFrame_part2.mnId<(mnLastRelocFrameId+mnFramesToResetIMU)) && (ourFrame_part2.mnId > mnFramesToResetIMU) &&
            (mSensor == System::IMU_MONOCULAR || mSensor == System::IMU_STEREO || mSensor == System::IMU_RGBD) && pCurrentMap->isImuInitialized())
@@ -2380,7 +2380,7 @@ bool Tracking::Track_part2(Frame& ourFrame_part2){
                     mLastBias = mCurrentFrame.mImuBias;
             }
         }
-        '''
+        */
 #ifdef REGISTER_TIMES
     #ifdef REGISTER_SECTION_LATENCY
         std::chrono::steady_clock::time_point time_EndLMTrack = std::chrono::steady_clock::now();
@@ -2413,10 +2413,10 @@ bool Tracking::Track_part2(Frame& ourFrame_part2){
                 mbVelocity = false;
             }
 
-            '''
+            /*
             if(mSensor == System::IMU_MONOCULAR || mSensor == System::IMU_STEREO || mSensor == System::IMU_RGBD)
                 mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.GetPose());
-            '''
+            */
             // Clean VO matches
             for(int i=0; i<ourFrame_part2.N; i++)
             {
