@@ -1959,7 +1959,7 @@ void Tracking::ResetFrameIMU()
     // TODO To implement...
 }
 
-#define assert((void(msg),exp))
+#define assertm(exp,msg) assert((void(msg),exp))
 /*
  * Input: El frame actual (que iría en mCurrentFrame)
  * Output: False si tiene que acabar la ejecución en esta etapa
@@ -1997,7 +1997,7 @@ bool Tracking::Track_part1(Frame& ourFrame_part1){
         {
             // cout << mCurrentFrame.mTimeStamp << ", " << mLastFrame.mTimeStamp << endl;
             // cout << "id last: " << mLastFrame.mnId << "    id curr: " << mCurrentFrame.mnId << endl;
-            assert(void("Si esto salta, el Atlas es inercial..."),!mpAtlas->isInertial())
+            assert((void("Si esto salta, el Atlas es inercial..."),!mpAtlas->isInertial()));
             /*
             if(mpAtlas->isInertial())
             {
@@ -2059,7 +2059,7 @@ bool Tracking::Track_part2(Frame& ourFrame_part2){
     {
         cout << "ERROR: There is not an active map in the atlas" << endl;
     }
-    
+
     // Get Map Mutex -> Map cannot be changed
     unique_lock<mutex> lock(pCurrentMap->mMutexMapUpdate);
     
@@ -2096,7 +2096,7 @@ bool Tracking::Track_part2(Frame& ourFrame_part2){
         }
         else
         {
-            assert(void("Por alguna razón intenta inicializar en Monocular"),false)
+            assert((void("Por alguna razón intenta inicializar en Monocular"),false));
             MonocularInitialization();
         }
 
@@ -2125,7 +2125,7 @@ bool Tracking::Track_part2(Frame& ourFrame_part2){
 #endif
 
         // Initial camera pose estimation using motion model or relocalization (if tracking is lost)
-        assert(void("¡¡mbOnlyTracking es verdad!!"),!mbOnlyTracking)
+        assert((void("¡¡mbOnlyTracking es verdad!!"),!mbOnlyTracking));
         //if(!mbOnlyTracking)
         //{
 
@@ -2507,7 +2507,7 @@ bool Tracking::Track_part2(Frame& ourFrame_part2){
       std::chrono::steady_clock::time_point muestraLiberacion = std::chrono::steady_clock::now();
       listaLiberaciones_mMutexMapUpdate.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraLiberacion.time_since_epoch()).count());
     #endif
-    return true
+    return true;
 }
 
 void Tracking::Track_part3(Frame& ourFrame){
