@@ -10,6 +10,9 @@ if [ $# -lt 3 ]; then
   echo "3 -> ideal camera measure latency and energy"
   echo "4 -> 30FPS camera measure latency"
   echo "5 -> 30FPS camera measure latency and energy"
+  echo "6 -> ideal camera with time, energy and latency measurements and free_mutex_free final division"
+  echo "7 -> ideal camera with full measurements (time, energy, latency and traces) and free_mutex_free final division"
+  echo "8 -> ideal camera with time, energy and latency (both section and full) and free_mutex_free final division"
   echo "You can also name the directory to save the output with a fourth argument"
 	exit 1
 fi
@@ -31,7 +34,7 @@ do
   echo CALL $i FOR DATASET $dataset with $N_TOKENS_PIPELINE TOKENS IN THE PIPELINE
   echo "***********************************************************************"
   echo ""
-  res_directory=2025/Results_12_05_2025/${dataset}_${N_TOKENS_PIPELINE}_${extResDir}_$i #Results_20_12_2024
+  res_directory=2025/Results_04_06_2025/${dataset}_${N_TOKENS_PIPELINE}_${extResDir}_$i #Results_20_12_2024 #Results_12_05_2025
   while [ ! -f $res_directory/data_orbslam_f.txt ]; 
   do # Solo ejecuta si no faltan los resultados
     echo "Intentamos generar resultados"
@@ -52,6 +55,12 @@ do
       nice -20 $ORIGINAL_PATH/Examples/Stereo/stereo_euroc_hist_33ms $N_TOKENS_PIPELINE 27 $ORIGINAL_PATH/Vocabulary/ORBvoc.txt $ORIGINAL_PATH/Examples/Stereo/EuRoC.yaml $DATASETS_PATH/$dataset $ORIGINAL_PATH/Examples/Stereo/EuRoC_TimeStamps/$dataset.txt data_orbslam > orbslam3_output.log 2>&1
     elif [ $3 -eq 5 ]; then
       sudo nice -20 perf stat -e power/energy-cores/,power/energy-ram/,power/energy-pkg/ $ORIGINAL_PATH/Examples/Stereo/stereo_euroc_hist_33ms $N_TOKENS_PIPELINE 27 $ORIGINAL_PATH/Vocabulary/ORBvoc.txt $ORIGINAL_PATH/Examples/Stereo/EuRoC.yaml $DATASETS_PATH/$dataset $ORIGINAL_PATH/Examples/Stereo/EuRoC_TimeStamps/$dataset.txt data_orbslam > orbslam3_output.log 2>&1
+    elif [ $3 -eq 6 ]; then
+      sudo nice -20 perf stat -e power/energy-cores/,power/energy-ram/,power/energy-pkg/ $ORIGINAL_PATH/Examples/Stereo/stereo_euroc_free_mutex_free $N_TOKENS_PIPELINE 27 $ORIGINAL_PATH/Vocabulary/ORBvoc.txt $ORIGINAL_PATH/Examples/Stereo/EuRoC.yaml $DATASETS_PATH/$dataset $ORIGINAL_PATH/Examples/Stereo/EuRoC_TimeStamps/$dataset.txt data_orbslam > orbslam3_output.log 2>&1
+    elif [ $3 -eq 7 ]; then
+      sudo nice -20 perf stat -e power/energy-cores/,power/energy-ram/,power/energy-pkg/ $ORIGINAL_PATH/Examples/Stereo/stereo_euroc_free_mutex_free_traces $N_TOKENS_PIPELINE 27 $ORIGINAL_PATH/Vocabulary/ORBvoc.txt $ORIGINAL_PATH/Examples/Stereo/EuRoC.yaml $DATASETS_PATH/$dataset $ORIGINAL_PATH/Examples/Stereo/EuRoC_TimeStamps/$dataset.txt data_orbslam > orbslam3_output.log 2>&1
+    elif [ $3 -eq 8 ]; then
+      sudo nice -20 perf stat -e power/energy-cores/,power/energy-ram/,power/energy-pkg/ $ORIGINAL_PATH/Examples/Stereo/stereo_euroc_free_mutex_free_sections $N_TOKENS_PIPELINE 27 $ORIGINAL_PATH/Vocabulary/ORBvoc.txt $ORIGINAL_PATH/Examples/Stereo/EuRoC.yaml $DATASETS_PATH/$dataset $ORIGINAL_PATH/Examples/Stereo/EuRoC_TimeStamps/$dataset.txt data_orbslam > orbslam3_output.log 2>&1
     fi
     echo "Ejecucion Acabada"
     T_ELAPSED=$(($SECONDS-$T_START))

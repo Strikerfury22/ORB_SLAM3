@@ -125,6 +125,7 @@ public:
     bool TrackFrame_part1(Frame& frame);
     bool TrackFrame_part2(Frame& frame);
     Sophus::SE3f TrackFrame_part3(Frame& frame);
+    Sophus::SE3f TrackFrame_earlyEnd(Frame& frame);
     Sophus::SE3f TrackFrame(Frame& frame);
 
     // Process the given rgbd frame. Depthmap must be registered to the RGB frame.

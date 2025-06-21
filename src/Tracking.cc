@@ -2503,6 +2503,28 @@ bool Tracking::Track_part2(Frame& ourFrame_part2){
 
         mLastFrame = Frame(ourFrame_part2);
     }
+
+    if(mState==OK || mState==RECENTLY_LOST)
+    {
+        // Store frame pose information to retrieve the complete camera trajectory afterwards.
+        if(ourFrame_part2.isSet())
+        {
+            Sophus::SE3f Tcr_ = ourFrame_part2.GetPose() * ourFrame_part2.mpReferenceKF->GetPoseInverse(); //¿Puede ser que tengamos que fijar referenceKF?
+            mlRelativeFramePoses.push_back(Tcr_);
+            mlpReferences.push_back(ourFrame_part2.mpReferenceKF);
+            mlFrameTimes.push_back(ourFrame_part2.mTimeStamp);
+            mlbLost.push_back(mState==LOST);
+        }
+        else
+        {
+            // This can happen if tracking is lost
+            mlRelativeFramePoses.push_back(mlRelativeFramePoses.back());
+            mlpReferences.push_back(mlpReferences.back());
+            mlFrameTimes.push_back(mlFrameTimes.back());
+            mlbLost.push_back(mState==LOST);
+        }
+
+    }
     #ifdef REGISTER_MMUTEXMAPUPDATE
       std::chrono::steady_clock::time_point muestraLiberacion = std::chrono::steady_clock::now();
       listaLiberaciones_mMutexMapUpdate.push_back(std::chrono::duration_cast<std::chrono::microseconds>(muestraLiberacion.time_since_epoch()).count());
@@ -2516,7 +2538,7 @@ void Tracking::Track_part3(Frame& ourFrame){
         // Store frame pose information to retrieve the complete camera trajectory afterwards.
         if(ourFrame.isSet())
         {
-            Sophus::SE3f Tcr_ = ourFrame.GetPose() * ourFrame.mpReferenceKF->GetPoseInverse();
+            Sophus::SE3f Tcr_ = ourFrame.GetPose() * ourFrame.mpReferenceKF->GetPoseInverse(); //¿Puede ser que tengamos que fijar referenceKF?
             mlRelativeFramePoses.push_back(Tcr_);
             mlpReferences.push_back(ourFrame.mpReferenceKF);
             mlFrameTimes.push_back(ourFrame.mTimeStamp);
