@@ -34,7 +34,7 @@ do
   echo CALL $i FOR DATASET $dataset with $N_TOKENS_PIPELINE TOKENS IN THE PIPELINE
   echo "***********************************************************************"
   echo ""
-  res_directory=2025/Results_04_06_2025/${dataset}_${N_TOKENS_PIPELINE}_${extResDir}_$i #Results_20_12_2024 #Results_12_05_2025
+  res_directory=2025/Results_23_06_2025/${dataset}_${N_TOKENS_PIPELINE}_${extResDir}_$i #Results_20_12_2024 #Results_12_05_2025
   while [ ! -f $res_directory/data_orbslam_f.txt ]; 
   do # Solo ejecuta si no faltan los resultados
     echo "Intentamos generar resultados"
