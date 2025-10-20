@@ -121,6 +121,8 @@ public:
 
     //Functions that sub-divide TrackStereo into two tasks for pipelining
     Frame GenerateFrame(const int n_image, const cv::Mat &imLeft, const cv::Mat &imRight, ORBextractor* ORBextractorLeft, ORBextractor* ORBextractorRight, const double &timestamp, const vector<IMU::Point>& vImuMeas = vector<IMU::Point>(), string filename="");
+    int ProcLeftFrame(const int n_image, const cv::Mat &imLeft, ORBextractor* ORBextractorLeft, const double &timestamp, const vector<IMU::Point>& vImuMeas, string filename, std::vector<cv::KeyPoint> &_mvKeys, cv::Mat &_mDescriptors, cv::Mat &imGray);
+    int ProcRightFrame(const int n_image, const cv::Mat &imRight, ORBextractor* ORBextractorRight, const double &timestamp, const vector<IMU::Point>& vImuMeas, string filename, std::vector<cv::KeyPoint> &_mvKeys, cv::Mat &_mDescriptors, cv::Mat &imGray);
     Sophus::SE3f TrackFrame(Frame& frame);
 
     // Process the given rgbd frame. Depthmap must be registered to the RGB frame.
@@ -199,6 +201,12 @@ public:
     void ChangeDataset();
 
     float GetImageScale();
+    
+    /*
+    Monta el Frame a partir de la información extraída
+    */
+    Frame assembleFrame(const int n_image, double timeStamp, const cv::Mat &imLeft, const cv::Mat &imRight, ORBextractor* ORBextractorLeft, ORBextractor* ORBextractorRight, std::vector<cv::KeyPoint> &_mvKeysLeft, std::vector<cv::KeyPoint> &_mvKeysRight, cv::Mat &_mDescriptorsLeft, cv::Mat &_mDescriptorsRight, int monoLeft, int monoRight);
+
 
 #ifdef REGISTER_TIMES
     void InsertLoadTime(double& time);

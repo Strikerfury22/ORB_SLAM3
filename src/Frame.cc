@@ -101,7 +101,7 @@ Frame::Frame(const Frame &frame)
 #endif
 }
 
-
+// Stereo
 Frame::Frame(const int n_img, const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeStamp, ORBextractor* extractorLeft, ORBextractor* extractorRight, ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, GeometricCamera* pCamera, Frame* pPrevF, const IMU::Calib &ImuCalib)
     :mpcpi(NULL), mpORBvocabulary(voc),mpORBextractorLeft(extractorLeft),mpORBextractorRight(extractorRight), mTimeStamp(timeStamp), mK(K.clone()), mK_(Converter::toMatrix3f(K)), mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth),
      mImuCalib(ImuCalib), mpImuPreintegrated(NULL), mpPrevFrame(pPrevF),mpImuPreintegratedFrame(NULL), mpReferenceKF(static_cast<KeyFrame*>(NULL)), mbIsSet(false), mbImuPreintegrated(false),
@@ -218,6 +218,136 @@ Frame::Frame(const int n_img, const cv::Mat &imLeft, const cv::Mat &imRight, con
 #endif
 }
 
+/*
+Constructor para la versión con grafo.
+imLeft e imRight siguen siendo en blanco y negro
+*/
+Frame::Frame(const int n_img, const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeStamp, ORBextractor* extractorLeft, ORBextractor* extractorRight, ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, GeometricCamera* pCamera, std::vector<cv::KeyPoint> &_mvKeys, std::vector<cv::KeyPoint> &_mvKeysRight, cv::Mat &_mDescriptors, cv::Mat &_mDescriptorsRigh, int _monoLeft, int _monoRight, Frame* pPrevF, const IMU::Calib &_ImuCalib)
+    :mpcpi(NULL), mpORBvocabulary(voc),mpORBextractorLeft(extractorLeft),mpORBextractorRight(extractorRight), mTimeStamp(timeStamp), mK(K.clone()), mK_(Converter::toMatrix3f(K)), mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth),
+     mImuCalib(_ImuCalib), mpImuPreintegrated(NULL), mpPrevFrame(pPrevF),mpImuPreintegratedFrame(NULL), mpReferenceKF(static_cast<KeyFrame*>(NULL)), mbIsSet(false), mbImuPreintegrated(false),
+     mpCamera(pCamera) ,mpCamera2(nullptr), mbHasPose(false), mbHasVelocity(false)
+{
+    std::cout << "Iniciamos Asignaciones" << std::endl;
+    // Frame ID
+    mnId=n_img;
+
+    // Scale Level Info
+    mnScaleLevels = mpORBextractorLeft->GetLevels();
+    mfScaleFactor = mpORBextractorLeft->GetScaleFactor();
+    mfLogScaleFactor = log(mfScaleFactor);
+    mvScaleFactors = mpORBextractorLeft->GetScaleFactors();
+    mvInvScaleFactors = mpORBextractorLeft->GetInverseScaleFactors();
+    mvLevelSigma2 = mpORBextractorLeft->GetScaleSigmaSquares();
+    mvInvLevelSigma2 = mpORBextractorLeft->GetInverseScaleSigmaSquares();
+
+    //Extracted ORB Info
+    std::cout << "A1" << std::endl;
+    mvKeys = std::move(_mvKeys);
+    std::cout << "A2" << std::endl;
+    mvKeysRight = std::move(_mvKeysRight);
+    std::cout << "A3" << std::endl;
+    mDescriptorsRight = std::move(_mDescriptorsRigh);
+    std::cout << "A4" << std::endl;
+    mDescriptors = std::move(_mDescriptors);
+    std::cout << "A5" << std::endl;
+    monoRight = _monoRight;
+    std::cout << "A6" << std::endl;
+    monoLeft = _monoLeft;
+    std::cout << "Asignaciones completas" << std::endl;
+
+    //Info processed from ORB-Extraction
+    
+#ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
+        std::chrono::steady_clock::time_point time_EndExtORB = std::chrono::steady_clock::now();
+
+        mTimeORB_Ext = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndExtORB - time_StartExtORB).count();
+    #endif
+#endif
+    std::cout << "Check de mvKeys" << std::endl;
+    N = mvKeys.size();
+    if(mvKeys.empty())
+        return;
+#ifdef REGISTER_TIMES
+    #ifdef REGISTER_SECTION_LATENCY
+     std::chrono::steady_clock::time_point time_StartStereoMatches = std::chrono::steady_clock::now();
+    #endif
+#endif
+    std::cout << "Undistort" << std::endl;
+    UndistortKeyPoints();
+
+
+    std::cout << "ComputeStereoMatchers" << std::endl;
+    ComputeStereoMatches();
+
+    std::cout << "Mas asignaciones" << std::endl;
+    mvpMapPoints = vector<MapPoint*>(N,static_cast<MapPoint*>(NULL));
+    mvbOutlier = vector<bool>(N,false);
+    mmProjectPoints.clear();
+    mmMatchedInImage.clear();
+
+
+    // This is done only for the first Frame (or after a change in the calibration)
+    if(mbInitialComputations)
+    {
+        std::cout << "Computaciones iniciales" << std::endl;
+        ComputeImageBounds(imLeft);
+
+        mfGridElementWidthInv=static_cast<float>(FRAME_GRID_COLS)/(mnMaxX-mnMinX);
+        mfGridElementHeightInv=static_cast<float>(FRAME_GRID_ROWS)/(mnMaxY-mnMinY);
+
+
+
+        fx = K.at<float>(0,0);
+        fy = K.at<float>(1,1);
+        cx = K.at<float>(0,2);
+        cy = K.at<float>(1,2);
+        invfx = 1.0f/fx;
+        invfy = 1.0f/fy;
+
+        mbInitialComputations=false;
+    }
+
+    std::cout << "Calculo de mb" << std::endl;
+
+    mb = mbf/fx;
+
+    if(pPrevF)
+    {   
+        std::cout << "Check Prev Frame" << std::endl;
+        if(pPrevF->HasVelocity())
+            SetVelocity(pPrevF->GetVelocity());
+    }
+    else
+    {
+        std::cout << "Zeros" << std::endl;
+        mVw.setZero();
+    }
+
+    mpMutexImu = new std::mutex();
+
+    //Set no stereo fisheye information
+    Nleft = -1;
+    Nright = -1;
+    mvLeftToRightMatch = vector<int>(0);
+    mvRightToLeftMatch = vector<int>(0);
+    mvStereo3Dpoints = vector<Eigen::Vector3f>(0);
+    monoLeft = -1;
+    monoRight = -1;
+    std::cout << "FeaturesToGrid" << std::endl;
+    AssignFeaturesToGrid();
+    #ifdef REGISTER_TIMES
+        #ifdef REGISTER_SECTION_LATENCY
+        std::chrono::steady_clock::time_point time_EndStereoMatches = std::chrono::steady_clock::now();
+
+        mTimeStereoMatch = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndStereoMatches - time_StartStereoMatches).count();
+        #endif
+    #endif
+    std::cout << "Constructor finito" << std::endl;
+}
+
+
+// RGB-D
 Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, GeometricCamera* pCamera,Frame* pPrevF, const IMU::Calib &ImuCalib)
     :mpcpi(NULL),mpORBvocabulary(voc),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
      mTimeStamp(timeStamp), mK(K.clone()), mK_(Converter::toMatrix3f(K)),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth),

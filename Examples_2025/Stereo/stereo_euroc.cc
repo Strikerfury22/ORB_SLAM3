@@ -35,8 +35,16 @@
 
 using namespace std;
 
-#ifdef REGISTER_MMUTEXMAPUPDATE
+struct extractedORBInfo{
+    double tr = -1;
+    std::vector<cv::KeyPoint> _mvKeys; 
+    cv::Mat _mDescriptors;
+    int mono = -1;
+    cv::Mat _grayImage;
+    int n_image = -1;
+};
 
+#ifdef REGISTER_MMUTEXMAPUPDATE
 
 void guardarMMutexMapUpdateEnFichero(ORB_SLAM3::System &slamSystem){
     std::cout << "Guardando en formato JSON" << std::endl;
@@ -275,6 +283,9 @@ int main(int argc, char **argv)
     ORB_SLAM3::Frame *frames = new ORB_SLAM3::Frame[roulette_size];
     ORB_SLAM3::ORBextractor **extractorsLeft = new ORB_SLAM3::ORBextractor*[roulette_size];
     ORB_SLAM3::ORBextractor **extractorsRight = new ORB_SLAM3::ORBextractor*[roulette_size];
+
+    std::vector<extractedORBInfo> infoLeftKeep(roulette_size);
+    std::vector<extractedORBInfo> infoRightKeep(roulette_size);
     #ifdef REGISTER_TIMES
         double *times_load = new double[roulette_size]; //I need to keep it here to insert it in the sequential Track stage so they are in order
     #else
@@ -326,7 +337,9 @@ int main(int argc, char **argv)
     #else
         PipelineTimer ptimer(nImages[0], 3);
     #endif
-
+    
+    
+    
     cv::Mat imLeft, imRight;
     for (seq = 0; seq<num_seq; seq++)
     {
@@ -347,107 +360,168 @@ int main(int argc, char **argv)
                                                                     //initCarga es el timestamp en el que la imagen actual llegó de la cámara
                                                                     
         std::cout << "Inicia la pipeline" << std::endl;
-        tbb::parallel_pipeline(num_tokens_pipeline,
-            //Dummy stage to stablish the order of the frames for the parallel stages
-            tbb::make_filter<void, int>(tbb::filter_mode::serial_in_order,
-            [&n_image, seq, &nImages, &initCarga, &finCarga](tbb::flow_control& fc) { 
-                /*//initCarga = std::chrono::steady_clock::now(); //Para la simulación de FPS de la cámara
-                if (n_image > 0){  //Solo evita dormirse en el primer fotograma (como el baseline)
-                    double milisegundos =  std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(initCarga-finCarga).count();
-                    if (33 > milisegundos) usleep((33-milisegundos) * 1000);
-                }*/
-                if( n_image == nImages[seq] ) {
-                    fc.stop();
-                    return -1;
-                }
+
+        tbb::flow::graph g;
+
+        tbb::flow::input_node<int> loader(g, 
+            [&n_image, seq, &nImages, &initCarga, &finCarga](oneapi::tbb::flow_control &fc) -> int {
+            /*
+            initCarga = std::chrono::steady_clock::now(); //Para la simulación de FPS de la cámara
+            if (n_image > 0){  //Solo evita dormirse en el primer fotograma (como el baseline)
+                double milisegundos =  std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(initCarga-finCarga).count();
+                if (33 > milisegundos) usleep((33-milisegundos) * 1000);
+            }*/
+            if (n_image == nImages[seq]){
+                fc.stop();
+                return -1;
+            } else {
                 //finCarga = std::chrono::steady_clock::now(); //Para la simulación de FPS de la cámara
                 return n_image++;
-            }) & 
-            // Read left and right images from file
-            tbb::make_filter<int, int>(tbb::filter_mode::parallel,
-            [&SLAM, &vstrImageLeft, &vstrImageRight, &imgsLeft, &imgsRight, seq, &ptimer, &vTimesTrack, &times_load, &roulette_size](int n_image) {
-                ptimer.start_pipeline(n_image, 0);
+            }
+        }); //Esto está super obsolero. Ahora los source_node se llaman input_node e "is_active" ya no es una argumento de entrada y siempre es false. ---,false); //No empieza a generar hasta que llamemos a "activate()" gracias al false de esta línea.
 
-                #ifdef MEDIR_TIEMPO_SECCIONES
-                    #ifdef REGISTER_SECTION_LATENCY
-                        std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-                    #endif                 
+        tbb::flow::limiter_node<int> limiter(g,num_tokens_pipeline);
 
+        tbb::flow::function_node<int,int> imageLoader(g, tbb::flow::unlimited, 
+            [&SLAM, &vstrImageLeft, &vstrImageRight, &imgsLeft, &imgsRight, seq, &ptimer, &vTimesTrack, &times_load, &roulette_size](int n_image){
+            //Cargar la imagen
+            ptimer.start_pipeline(n_image, 0);
+            
+            #ifdef MEDIR_TIEMPO_SECCIONES
+                #ifdef REGISTER_SECTION_LATENCY
+                    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+                #endif                 
+
+            #endif
+            
+            cv::Mat imLeft = cv::imread(vstrImageLeft[seq][n_image],cv::IMREAD_UNCHANGED); //,cv::IMREAD_UNCHANGED);
+            cv::Mat imRight = cv::imread(vstrImageRight[seq][n_image],cv::IMREAD_UNCHANGED); //,cv::IMREAD_UNCHANGED);
+
+            if(imLeft.empty())
+            {
+                cerr << endl << "Failed to load image at: "
+                    << string(vstrImageLeft[seq][n_image]) << endl;
+                exit(1);
+            }
+
+            if(imRight.empty())
+            {
+                cerr << endl << "Failed to load image at: "
+                    << string(vstrImageRight[seq][n_image]) << endl;
+                exit(1);
+            }
+
+            imgsLeft[n_image % roulette_size] = imLeft;
+            imgsRight[n_image % roulette_size] = imRight;
+
+            #ifdef MEDIR_TIEMPO_SECCIONES
+                #ifdef REGISTER_SECTION_LATENCY
+                    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+
+                    double t_load = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
+                    vTimesTrack[n_image] = t_load;
                 #endif
+
+            #ifdef REGISTER_TIMES
+                #ifdef REGISTER_SECTION_LATENCY
+                    times_load[n_image % roulette_size] = t_load;
+                #endif
+            #endif
+            #endif
+            
+            #ifndef REGISTER_TOTAL_LATENCY
+                ptimer.end_pipeline(n_image, 0);
+            #endif
+
+            // Procesado antes de la extracción paralela.
+            
+            #ifndef REGISTER_TOTAL_LATENCY
+                ptimer.start_pipeline(n_image, 1); //Lo iniciamos aqui para que se comparta el tiempo entre ambas ramas paralelas
+            #endif
+
+            // Pasamos a la extracción de características ORB paralela
+            return n_image;
+        });
+        tbb::flow::function_node<int,int> leftImageProcessing(g, tbb::flow::unlimited, 
+            [&SLAM, &frames, &ptimer, &seq, &vTimestampsCam, &vstrImageLeft, &imgsLeft, &imgsRight, &vTimesTrack, &extractorsLeft, &extractorsRight, &roulette_size, &infoLeftKeep](int n_image) {
                 
-                cv::Mat imLeft = cv::imread(vstrImageLeft[seq][n_image],cv::IMREAD_UNCHANGED); //,cv::IMREAD_UNCHANGED);
-                cv::Mat imRight = cv::imread(vstrImageRight[seq][n_image],cv::IMREAD_UNCHANGED); //,cv::IMREAD_UNCHANGED);
-
-                if(imLeft.empty())
-                {
-                    cerr << endl << "Failed to load image at: "
-                        << string(vstrImageLeft[seq][n_image]) << endl;
-                    exit(1);
-                }
-
-                if(imRight.empty())
-                {
-                    cerr << endl << "Failed to load image at: "
-                        << string(vstrImageRight[seq][n_image]) << endl;
-                    exit(1);
-                }
-
-                imgsLeft[n_image % roulette_size] = imLeft;
-                imgsRight[n_image % roulette_size] = imRight;
-
-                #ifdef MEDIR_TIEMPO_SECCIONES
-                    #ifdef REGISTER_SECTION_LATENCY
-                        std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-
-                        double t_load = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
-                        vTimesTrack[n_image] = t_load;
-                    #endif
-
-                #ifdef REGISTER_TIMES
-                    #ifdef REGISTER_SECTION_LATENCY
-                        times_load[n_image % roulette_size] = t_load;
-                    #endif
+            /* //Hace falta adaptarlo a la versión paralela
+            #ifdef MEDIR_TIEMPO_SECCIONES
+                #ifdef REGISTER_SECTION_LATENCY
+                    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
                 #endif
+            #endif
+            */
+            extractedORBInfo infoLeft;
+            //frames[n_image % roulette_size] = 
+            infoLeft.mono = SLAM.ProcLeftFrame(n_image, imgsLeft[n_image % roulette_size],
+                 extractorsLeft[n_image % roulette_size], vTimestampsCam[seq][n_image], vector<ORB_SLAM3::IMU::Point>(), 
+                 vstrImageLeft[seq][n_image], infoLeft._mvKeys, infoLeft._mDescriptors, infoLeft._grayImage);
+            infoLeft.tr = vTimestampsCam[seq][n_image];
+            infoLeft.n_image = n_image;
+            infoLeftKeep[n_image % roulette_size] = infoLeft;
+            /* //Hace falta adaptarlo a la versión paralela
+            #ifdef MEDIR_TIEMPO_SECCIONES
+                #ifdef REGISTER_SECTION_LATENCY
+                    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+
+                    double t_extract = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
+                    vTimesTrack[n_image] += t_extract;
                 #endif
+            #endif
+            */
+            return n_image;
+        });
+        tbb::flow::function_node<int,int> rightImageProcessing(g, tbb::flow::unlimited, 
+            [&SLAM, &frames, &ptimer, &seq, &vTimestampsCam, &vstrImageLeft, &imgsLeft, &imgsRight, &vTimesTrack, &extractorsLeft, &extractorsRight, &roulette_size, &infoRightKeep](int n_image) {
                 
-                #ifndef REGISTER_TOTAL_LATENCY
-                    ptimer.end_pipeline(n_image, 0);
+            /* //Hace falta adaptarlo a la versión paralela
+            #ifdef MEDIR_TIEMPO_SECCIONES
+                #ifdef REGISTER_SECTION_LATENCY
+                    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
                 #endif
-                return n_image;
-            }) &
-            //Create Frame from image
-            tbb::make_filter<int, int>(tbb::filter_mode::parallel,
-            [&SLAM, &frames, &ptimer, &seq, &vTimestampsCam, &vstrImageLeft, &imgsLeft, &imgsRight, &vTimesTrack, &extractorsLeft, &extractorsRight, &roulette_size](int n_image) {
-                
-                #ifndef REGISTER_TOTAL_LATENCY
-                    ptimer.start_pipeline(n_image, 1);
-                #endif
-                
-                #ifdef MEDIR_TIEMPO_SECCIONES
-                    #ifdef REGISTER_SECTION_LATENCY
-                        std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-                    #endif
-                #endif
-                frames[n_image % roulette_size] = SLAM.GenerateFrame(n_image, imgsLeft[n_image % roulette_size], 
-                    imgsRight[n_image % roulette_size], extractorsLeft[n_image % roulette_size], extractorsRight[n_image % roulette_size],
-                    vTimestampsCam[seq][n_image], vector<ORB_SLAM3::IMU::Point>(), vstrImageLeft[seq][n_image]);
+            #endif
+            */
+            extractedORBInfo infoRight;
+            //frames[n_image % roulette_size] = 
+            infoRight.mono = SLAM.ProcRightFrame(n_image, imgsRight[n_image % roulette_size],
+                 extractorsRight[n_image % roulette_size], vTimestampsCam[seq][n_image], vector<ORB_SLAM3::IMU::Point>(), 
+                 vstrImageLeft[seq][n_image], infoRight._mvKeys, infoRight._mDescriptors, infoRight._grayImage);
+            infoRight.tr = vTimestampsCam[seq][n_image];
+            infoRight.n_image = n_image;
+            infoRightKeep[n_image % roulette_size] = infoRight;
+            /* //Hace falta adaptarlo a la versión paralela
+            #ifdef MEDIR_TIEMPO_SECCIONES
+                #ifdef REGISTER_SECTION_LATENCY
+                    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 
-                #ifdef MEDIR_TIEMPO_SECCIONES
-                    #ifdef REGISTER_SECTION_LATENCY
-                        std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-
-                        double t_extract = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
-                        vTimesTrack[n_image] += t_extract;
-                    #endif
+                    double t_extract = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
+                    vTimesTrack[n_image] += t_extract;
                 #endif
-                #ifndef REGISTER_TOTAL_LATENCY
-                    ptimer.end_pipeline(n_image, 1);
-                #endif
-                return n_image;
-            }) &
-            // Last stage ORB
-            tbb::make_filter<int, void>(tbb::filter_mode::serial_in_order,
-            [&SLAM, &vTimesTrack, &frames, seq, &ptimer, &vTimesTrack, &times_load, &roulette_size](int n_image) {
+            #endif
+            */
+            return n_image;
+        });
+        tbb::flow::join_node<std::tuple<int,int>,tbb::flow::tag_matching> joinExtractedORB(g, [](int left){return left;},
+                                                                                                [](int right){return right;});
+        tbb::flow::function_node<std::tuple<int,int>, int> frameBuilder(g, tbb::flow::unlimited, 
+            [&SLAM, &frames, &ptimer, &seq, &vTimestampsCam, &vstrImageLeft, &imgsLeft, &imgsRight, &vTimesTrack, &extractorsLeft, &extractorsRight, &roulette_size, &infoLeftKeep, &infoRightKeep](std::tuple<int,int> extractedInfo){
+            extractedORBInfo &left = infoLeftKeep[std::get<0>(extractedInfo) % roulette_size];
+            extractedORBInfo &right = infoRightKeep[std::get<1>(extractedInfo) & roulette_size];
+            frames[left.n_image % roulette_size] =  SLAM.assembleFrame(left.n_image,left.tr,left._grayImage,right._grayImage,extractorsLeft[left.n_image % roulette_size], extractorsRight[right.n_image % roulette_size], left._mvKeys, right._mvKeys, left._mDescriptors, right._mDescriptors, left.mono, right.mono);
+            
+            //Para el nodo union
+            #ifndef REGISTER_TOTAL_LATENCY
+                ptimer.end_pipeline(left.n_image, 1);
+            #endif
+            return left.n_image;
+        });
+        tbb::flow::sequencer_node<int> orderFrames(g, 
+            [](int n_image){
+                return n_image; //Aqui hay que devolver el "número en la secuencia". En nuestro caso, n_image ya cumple esa función. TBB pro pg483-484.
+            });
+        tbb::flow::function_node<int> trackStep(g, tbb::flow::serial,
+        [&SLAM, &vTimesTrack, &frames, seq, &ptimer, &vTimesTrack, &times_load, &roulette_size](int n_image) {
                 #ifndef REGISTER_TOTAL_LATENCY
                     ptimer.start_pipeline(n_image, 2);
                 #endif
@@ -466,7 +540,7 @@ int main(int argc, char **argv)
 
                         double t_track = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
                         vTimesTrack[n_image] += t_track;
-                        double ttrack = vTimesTrack[n_image]; //Doesn't work????
+                        double ttrack = vTimesTrack[n_image]; //Doesnt work????
                     #endif
 
                 #ifdef REGISTER_TIMES
@@ -484,8 +558,31 @@ int main(int argc, char **argv)
                 #else
                     ptimer.end_pipeline(n_image, 0);
                 #endif
-            })); //END OF PIPELINE
-            std::cout << "Acaba la pipeline" << std::endl;
+        });                 
+        std::cout << "Nodos Definidos" << std::endl;
+            
+        
+        // Declaramos las conexiones
+        tbb::flow::make_edge(loader,limiter); //El limitador de tokens en la pipeline-grafo.
+        tbb::flow::make_edge(limiter,imageLoader);
+        tbb::flow::make_edge(trackStep, limiter.decrementer());// Reduce el numero de mensajes pasados por el limitador
+            //Los nodos paralelos
+        tbb::flow::make_edge(imageLoader,leftImageProcessing);
+        tbb::flow::make_edge(imageLoader,rightImageProcessing);
+        tbb::flow::make_edge(leftImageProcessing, tbb::flow::input_port<0>(joinExtractedORB));
+        tbb::flow::make_edge(rightImageProcessing, tbb::flow::input_port<1>(joinExtractedORB));
+        tbb::flow::make_edge(joinExtractedORB,frameBuilder);// Paso a la construcción del frame
+        // Se ordenan los frames para enviarselo al trackStep
+        tbb::flow::make_edge(frameBuilder,orderFrames);
+        tbb::flow::make_edge(orderFrames,trackStep);
+                         
+        std::cout << "Conexiones definidas" << std::endl;
+        //Iniciamos la ejecución
+        loader.activate();
+        std::cout << "Loader lanzado" << std::endl;
+        g.wait_for_all();
+       
+        std::cout << "Acaba la pipeline" << std::endl;
         if(seq < num_seq - 1)
         {
             cout << "Changing the dataset" << endl;

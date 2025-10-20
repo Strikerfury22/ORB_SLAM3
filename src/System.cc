@@ -408,6 +408,100 @@ Frame System::GenerateFrame(const int n_image, const cv::Mat &imLeft, const cv::
     return mpTracker->BuildFrame(n_image, imLeftToFeed,imRightToFeed,timestamp,filename,ORBextractorLeft,ORBextractorRight, tr);
 }
 
+Frame System::assembleFrame(const int n_image, double timeStamp, const cv::Mat &imLeft, const cv::Mat &imRight, ORBextractor* ORBextractorLeft, ORBextractor* ORBextractorRight, std::vector<cv::KeyPoint> &_mvKeysLeft, std::vector<cv::KeyPoint> &_mvKeysRight, cv::Mat &_mDescriptorsLeft, cv::Mat &_mDescriptorsRight, int monoLeft, int monoRight){
+    return mpTracker->assembleFrame(n_image,timeStamp,imLeft,imRight,ORBextractorLeft,ORBextractorRight, _mvKeysLeft, _mvKeysRight, _mDescriptorsLeft, _mDescriptorsRight, monoLeft, monoRight);
+}
+
+int System::ProcLeftFrame(const int n_image, const cv::Mat &imLeft, ORBextractor* ORBextractorLeft, const double &timestamp, const vector<IMU::Point>& vImuMeas, string filename, std::vector<cv::KeyPoint> &_mvKeys, cv::Mat &_mDescriptors, cv::Mat &imGray){
+if(mSensor!=STEREO && mSensor!=IMU_STEREO)
+    {
+        cerr << "ERROR: you called TrackStereo but input sensor was not set to Stereo nor Stereo-Inertial." << endl;
+        exit(-1);
+    }
+
+    #ifdef REGISTER_TIMES
+        #ifdef REGISTER_SECTION_LATENCY
+            std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+        #endif
+    #endif
+    cv::Mat imToFeed;
+    if(settings_ && settings_->needToRectify()){
+        cv::Mat M1l = settings_->M1l();
+        cv::Mat M2l = settings_->M2l();
+
+        cv::remap(imLeft, imToFeed, M1l, M2l, cv::INTER_LINEAR);
+    }
+    else if(settings_ && settings_->needToResize()){
+        cv::resize(imLeft,imToFeed,settings_->newImSize());
+    }
+    else{
+        imToFeed = imLeft.clone();
+    }
+
+    #ifdef REGISTER_TIMES
+        #ifdef REGISTER_SECTION_LATENCY
+        std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+
+        double tr = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
+        #else
+        double tr = 0;
+        #endif
+    #else
+        double tr = 0;
+    #endif
+
+    if (mSensor == System::IMU_STEREO)
+        for(size_t i_imu = 0; i_imu < vImuMeas.size(); i_imu++)
+            mpTracker->GrabImuData(vImuMeas[i_imu]);
+    
+    return mpTracker->ExtractORBLeft(n_image, imToFeed,timestamp,filename,ORBextractorLeft, tr, _mvKeys, _mDescriptors, imGray);
+}
+
+int System::ProcRightFrame(const int n_image, const cv::Mat &imRight, ORBextractor* ORBextractorRight, const double &timestamp, const vector<IMU::Point>& vImuMeas, string filename, std::vector<cv::KeyPoint> &_mvKeys, cv::Mat &_mDescriptors, cv::Mat &imGray){
+    if(mSensor!=STEREO && mSensor!=IMU_STEREO){
+        cerr << "ERROR: you called TrackStereo but input sensor was not set to Stereo nor Stereo-Inertial." << endl;
+        exit(-1);
+    }
+
+    #ifdef REGISTER_TIMES
+        #ifdef REGISTER_SECTION_LATENCY
+            std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+        #endif
+    #endif
+    cv::Mat imToFeed;
+    if(settings_ && settings_->needToRectify()){
+        cv::Mat M1r = settings_->M1r();
+        cv::Mat M2r = settings_->M2r();
+
+        cv::remap(imRight, imToFeed, M1r, M2r, cv::INTER_LINEAR);
+    }
+    else if(settings_ && settings_->needToResize()){
+        cv::resize(imRight,imToFeed,settings_->newImSize());
+    }
+    else{
+        imToFeed = imRight.clone();
+    }
+
+    #ifdef REGISTER_TIMES
+        #ifdef REGISTER_SECTION_LATENCY
+        std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+
+        double tr = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(t2 - t1).count();
+        #else
+        double tr = 0;
+        #endif
+    #else
+        double tr = 0;
+    #endif
+
+    if (mSensor == System::IMU_STEREO)
+        for(size_t i_imu = 0; i_imu < vImuMeas.size(); i_imu++)
+            mpTracker->GrabImuData(vImuMeas[i_imu]);
+    
+    return mpTracker->ExtractORBRight(n_image,imToFeed,timestamp,filename,ORBextractorRight, tr, _mvKeys, _mDescriptors, imGray);
+}
+
+
 Sophus::SE3f System::TrackFrame(Frame& frame)
 {
     #ifdef REGISTER_TIMES

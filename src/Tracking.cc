@@ -1619,6 +1619,79 @@ Sophus::SE3f Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat 
     return mCurrentFrame.GetPose();
 }
 
+//Parallel ORB Extraction oriented
+int Tracking::ExtractORBRight(const int n_image,const cv::Mat &imRectRight, const double &timestamp, string filename, ORBextractor* ORBextractorRight, double tr, std::vector<cv::KeyPoint> &_mvKeys, cv::Mat &_mDescriptors, cv::Mat &mImGrayRight){
+    mImGrayRight = imRectRight;
+
+    if(mImGray.channels()==3)
+    {
+        //cout << "Image with 3 channels" << endl;
+        if(mbRGB)
+        {
+            cvtColor(mImGrayRight,mImGrayRight,cv::COLOR_RGB2GRAY);
+        }
+        else
+        {
+            cvtColor(mImGrayRight,mImGrayRight,cv::COLOR_RGB2GRAY);
+        }
+    }
+    else if(mImGray.channels()==4)
+    {
+        //cout << "Image with 4 channels" << endl;
+        if(mbRGB)
+        {
+            cvtColor(mImGrayRight,mImGrayRight,cv::COLOR_RGBA2GRAY);
+        }
+        else
+        {
+            cvtColor(mImGrayRight,mImGrayRight,cv::COLOR_BGRA2GRAY);
+        }
+    }
+
+    vector<int> vLapping = {0,0};
+    return (*ORBextractorRight)(mImGrayRight,cv::Mat(),_mvKeys,_mDescriptors,vLapping);
+}
+
+int Tracking::ExtractORBLeft(const int n_image, const cv::Mat &imRectLeft, const double &timestamp, string filename, ORBextractor* ORBextractorLeft, double tr, std::vector<cv::KeyPoint> &_mvKeys, cv::Mat &_mDescriptors, cv::Mat &mImGray){
+    mImGray = imRectLeft;
+
+    if(mImGray.channels()==3)
+    {
+        //cout << "Image with 3 channels" << endl;
+        if(mbRGB)
+        {
+            cvtColor(mImGray,mImGray,cv::COLOR_RGB2GRAY);
+        }
+        else
+        {
+            cvtColor(mImGray,mImGray,cv::COLOR_BGR2GRAY);
+        }
+    }
+    else if(mImGray.channels()==4)
+    {
+        //cout << "Image with 4 channels" << endl;
+        if(mbRGB)
+        {
+            cvtColor(mImGray,mImGray,cv::COLOR_RGBA2GRAY);
+        }
+        else
+        {
+            cvtColor(mImGray,mImGray,cv::COLOR_BGRA2GRAY);
+        }
+    }
+
+    vector<int> vLapping = {0,0};
+    return (*ORBextractorLeft)(mImGray,cv::Mat(),_mvKeys,_mDescriptors,vLapping);
+}
+
+Frame Tracking::assembleFrame(const int n_image, double timeStamp, const cv::Mat &imLeft, const cv::Mat &imRight, ORBextractor* ORBextractorLeft, ORBextractor* ORBextractorRight, std::vector<cv::KeyPoint> &_mvKeysLeft, std::vector<cv::KeyPoint> &_mvKeysRight, cv::Mat &_mDescriptorsLeft, cv::Mat &_mDescriptorsRight, int monoLeft, int monoRight){
+    
+    Frame retFrame;
+    retFrame = Frame(n_image,imLeft,imRight,timeStamp,ORBextractorLeft,ORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera, _mvKeysLeft, _mvKeysRight, _mDescriptorsLeft, _mDescriptorsRight, monoLeft, monoRight);
+    return retFrame;
+}
+
+////////Original Build Frame
 Frame Tracking::BuildFrame(const int n_image, const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp, string filename, ORBextractor* ORBextractorLeft, ORBextractor* ORBextractorRight, double tr)
 {
     cv::Mat mImGray = imRectLeft;

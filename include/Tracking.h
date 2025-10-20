@@ -378,7 +378,9 @@ protected:
 public:
     // Main tracking function. It is independent of the input sensor.
     void Track();
-
+    int ExtractORBLeft(const int n_image, const cv::Mat &imRectLeft, const double &timestamp, string filename, ORBextractor* ORBextractorLeft, double tr, std::vector<cv::KeyPoint> &_mvKeys, cv::Mat &_mDescriptors, cv::Mat &mImGray);
+    int ExtractORBRight(const int n_image,const cv::Mat &imRectRight, const double &timestamp, string filename, ORBextractor* ORBextractorRight, double tr, std::vector<cv::KeyPoint> &_mvKeys, cv::Mat &_mDescriptors, cv::Mat &mImGrayRight);
+    Frame assembleFrame(const int n_image, double timeStamp, const cv::Mat &imLeft, const cv::Mat &imRight, ORBextractor* ORBextractorLeft, ORBextractor* ORBextractorRight, std::vector<cv::KeyPoint> &_mvKeysLeft, std::vector<cv::KeyPoint> &_mvKeysRight, cv::Mat &_mDescriptorsLeft, cv::Mat &_mDescriptorsRight, int monoLeft, int monoRight);
     Frame BuildFrame(const int n_image, const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp, string filename, ORBextractor* ORBextractorLeft, ORBextractor* ORBextractorRight, double tr);
     
     cv::Mat mImRight;
