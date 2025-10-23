@@ -409,6 +409,7 @@ Frame System::GenerateFrame(const int n_image, const cv::Mat &imLeft, const cv::
 }
 
 Frame System::assembleFrame(const int n_image, double timeStamp, const cv::Mat &imLeft, const cv::Mat &imRight, ORBextractor* ORBextractorLeft, ORBextractor* ORBextractorRight, std::vector<cv::KeyPoint> &_mvKeysLeft, std::vector<cv::KeyPoint> &_mvKeysRight, cv::Mat &_mDescriptorsLeft, cv::Mat &_mDescriptorsRight, int monoLeft, int monoRight){
+    //std::cout << "Llamamos al assemble frame de System para "<< n_image << std::endl;
     return mpTracker->assembleFrame(n_image,timeStamp,imLeft,imRight,ORBextractorLeft,ORBextractorRight, _mvKeysLeft, _mvKeysRight, _mDescriptorsLeft, _mDescriptorsRight, monoLeft, monoRight);
 }
 

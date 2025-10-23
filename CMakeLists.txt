@@ -7,10 +7,10 @@ ENDIF()
 
 MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
 
-#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall   -O3 -g -fno-omit-frame-pointer")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall -O1 -g -fno-omit-frame-pointer")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w -fsanitize=address -O1 -g -fno-omit-frame-pointer")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w -O3 -g -fno-omit-frame-pointer")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall   -O3 -g -fno-omit-frame-pointer")
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall -O1 -g -fno-omit-frame-pointer")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w -fsanitize=address -fsanitize-recover=address -O1 -g -fno-omit-frame-pointer")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w -O3 -g -fno-omit-frame-pointer")
 
 
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -march=native")
@@ -100,6 +100,7 @@ src/TwoViewReconstruction.cc
 src/Config.cc
 src/Settings.cc
 src/pipeline_timer.cpp
+src/extractedORBInfo.cpp
 include/System.h
 include/Tracking.h
 include/LocalMapping.h
@@ -131,7 +132,8 @@ include/SerializationUtils.h
 include/Config.h
 include/Settings.h
 include/tbb_utils.hpp
-include/pipeline_timer.hpp)
+include/pipeline_timer.hpp
+include/extractedORBInfo.h)
 
 add_subdirectory(Thirdparty/g2o)
 
@@ -193,9 +195,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples_2025/Stereo)
 #         Examples/Stereo/stereo_euroc.cc)
 # target_link_libraries(stereo_euroc ${PROJECT_NAME})
 
-add_executable(stereo_euroc_addSan
+add_executable(stereo_euroc_allIn
         Examples_2025/Stereo/stereo_euroc.cc)
-target_link_libraries(stereo_euroc_addSan ${PROJECT_NAME})
+target_link_libraries(stereo_euroc_allIn ${PROJECT_NAME})
 
 # add_executable(stereo_tum_vi
 #         Examples/Stereo/stereo_tum_vi.cc)

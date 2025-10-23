@@ -1685,9 +1685,14 @@ int Tracking::ExtractORBLeft(const int n_image, const cv::Mat &imRectLeft, const
 }
 
 Frame Tracking::assembleFrame(const int n_image, double timeStamp, const cv::Mat &imLeft, const cv::Mat &imRight, ORBextractor* ORBextractorLeft, ORBextractor* ORBextractorRight, std::vector<cv::KeyPoint> &_mvKeysLeft, std::vector<cv::KeyPoint> &_mvKeysRight, cv::Mat &_mDescriptorsLeft, cv::Mat &_mDescriptorsRight, int monoLeft, int monoRight){
-    
+    /*auto mvKeysLeft = _mvKeysLeft;
+    auto mvKeysRight = _mvKeysRight;
+    cv::Mat mDescriptorsLeft = _mDescriptorsLeft.clone();
+    cv::Mat mDescriptorsRight = _mDescriptorsRight.clone();*/
     Frame retFrame;
+    //std::cout << "Llamamos al assemble frame de Tracking para "<< n_image << std::endl;
     retFrame = Frame(n_image,imLeft,imRight,timeStamp,ORBextractorLeft,ORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera, _mvKeysLeft, _mvKeysRight, _mDescriptorsLeft, _mDescriptorsRight, monoLeft, monoRight);
+    //std::cout << "Tracking asignado" << std::endl;
     return retFrame;
 }
 

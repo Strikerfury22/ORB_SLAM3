@@ -57,10 +57,8 @@ Frame::Frame(): mpcpi(NULL), mpImuPreintegrated(NULL), mpPrevFrame(NULL), mpImuP
 Frame::Frame(const Frame &frame)
     :mpcpi(frame.mpcpi),mpORBvocabulary(frame.mpORBvocabulary), mpORBextractorLeft(frame.mpORBextractorLeft), mpORBextractorRight(frame.mpORBextractorRight),
      mTimeStamp(frame.mTimeStamp), mK(frame.mK.clone()), mK_(Converter::toMatrix3f(frame.mK)), mDistCoef(frame.mDistCoef.clone()),
-     mbf(frame.mbf), mb(frame.mb), mThDepth(frame.mThDepth), N(frame.N), mvKeys(frame.mvKeys),
-     mvKeysRight(frame.mvKeysRight), mvKeysUn(frame.mvKeysUn), mvuRight(frame.mvuRight),
+     mbf(frame.mbf), mb(frame.mb), mThDepth(frame.mThDepth), N(frame.N), mvKeysUn(frame.mvKeysUn), mvuRight(frame.mvuRight),
      mvDepth(frame.mvDepth), mBowVec(frame.mBowVec), mFeatVec(frame.mFeatVec),
-     mDescriptors(frame.mDescriptors.clone()), mDescriptorsRight(frame.mDescriptorsRight.clone()),
      mvpMapPoints(frame.mvpMapPoints), mvbOutlier(frame.mvbOutlier), mImuCalib(frame.mImuCalib), mnCloseMPs(frame.mnCloseMPs),
      mpImuPreintegrated(frame.mpImuPreintegrated), mpImuPreintegratedFrame(frame.mpImuPreintegratedFrame), mImuBias(frame.mImuBias),
      mnId(frame.mnId), mpReferenceKF(frame.mpReferenceKF), mnScaleLevels(frame.mnScaleLevels),
@@ -74,6 +72,15 @@ Frame::Frame(const Frame &frame)
      mTlr(frame.mTlr), mRlr(frame.mRlr), mtlr(frame.mtlr), mTrl(frame.mTrl),
      mTcw(frame.mTcw), mbHasPose(false), mbHasVelocity(false)
 {
+/*mvKeys(frame.mvKeys),
+     mvKeysRight(frame.mvKeysRight)
+     mDescriptors(frame.mDescriptors.clone()), 
+     mDescriptorsRight(frame.mDescriptorsRight.clone()),*/
+    //std::cout << "Yup, me estan llamando por " << mnId << std::endl;
+    mvKeys = frame.mvKeys;
+    mvKeysRight = frame.mvKeysRight;
+    mDescriptors = frame.mDescriptors.clone();
+    mDescriptorsRight = frame.mDescriptorsRight.clone();
     for(int i=0;i<FRAME_GRID_COLS;i++)
         for(int j=0; j<FRAME_GRID_ROWS; j++){
             mGrid[i][j]=frame.mGrid[i][j];
@@ -227,7 +234,7 @@ Frame::Frame(const int n_img, const cv::Mat &imLeft, const cv::Mat &imRight, con
      mImuCalib(_ImuCalib), mpImuPreintegrated(NULL), mpPrevFrame(pPrevF),mpImuPreintegratedFrame(NULL), mpReferenceKF(static_cast<KeyFrame*>(NULL)), mbIsSet(false), mbImuPreintegrated(false),
      mpCamera(pCamera) ,mpCamera2(nullptr), mbHasPose(false), mbHasVelocity(false)
 {
-    std::cout << "Iniciamos Asignaciones" << std::endl;
+    //std::cout << "Iniciamos Asignaciones" << std::endl;
     // Frame ID
     mnId=n_img;
 
@@ -241,19 +248,19 @@ Frame::Frame(const int n_img, const cv::Mat &imLeft, const cv::Mat &imRight, con
     mvInvLevelSigma2 = mpORBextractorLeft->GetInverseScaleSigmaSquares();
 
     //Extracted ORB Info
-    std::cout << "A1" << std::endl;
-    mvKeys = std::move(_mvKeys);
-    std::cout << "A2" << std::endl;
-    mvKeysRight = std::move(_mvKeysRight);
-    std::cout << "A3" << std::endl;
-    mDescriptorsRight = std::move(_mDescriptorsRigh);
-    std::cout << "A4" << std::endl;
-    mDescriptors = std::move(_mDescriptors);
-    std::cout << "A5" << std::endl;
+    //std::cout << "A1" << std::endl;
+    mvKeys = _mvKeys;
+    //std::cout << "A2" << std::endl;
+    mvKeysRight = _mvKeysRight;
+    //std::cout << "A3" << std::endl;
+    mDescriptorsRight = _mDescriptorsRigh.clone();
+    //std::cout << "A4" << std::endl;
+    mDescriptors = _mDescriptors.clone();
+    //std::cout << "A5" << std::endl;
     monoRight = _monoRight;
-    std::cout << "A6" << std::endl;
+    //std::cout << "A6" << std::endl;
     monoLeft = _monoLeft;
-    std::cout << "Asignaciones completas" << std::endl;
+    //std::cout << "Asignaciones completas" << std::endl;
 
     //Info processed from ORB-Extraction
     
@@ -264,7 +271,7 @@ Frame::Frame(const int n_img, const cv::Mat &imLeft, const cv::Mat &imRight, con
         mTimeORB_Ext = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndExtORB - time_StartExtORB).count();
     #endif
 #endif
-    std::cout << "Check de mvKeys" << std::endl;
+    //std::cout << "Check de mvKeys" << std::endl;
     N = mvKeys.size();
     if(mvKeys.empty())
         return;
@@ -273,14 +280,14 @@ Frame::Frame(const int n_img, const cv::Mat &imLeft, const cv::Mat &imRight, con
      std::chrono::steady_clock::time_point time_StartStereoMatches = std::chrono::steady_clock::now();
     #endif
 #endif
-    std::cout << "Undistort" << std::endl;
+    //std::cout << "Undistort" << std::endl;
     UndistortKeyPoints();
 
 
-    std::cout << "ComputeStereoMatchers" << std::endl;
+    //std::cout << "ComputeStereoMatchers" << std::endl;
     ComputeStereoMatches();
 
-    std::cout << "Mas asignaciones" << std::endl;
+    //std::cout << "Mas asignaciones" << std::endl;
     mvpMapPoints = vector<MapPoint*>(N,static_cast<MapPoint*>(NULL));
     mvbOutlier = vector<bool>(N,false);
     mmProjectPoints.clear();
@@ -290,7 +297,7 @@ Frame::Frame(const int n_img, const cv::Mat &imLeft, const cv::Mat &imRight, con
     // This is done only for the first Frame (or after a change in the calibration)
     if(mbInitialComputations)
     {
-        std::cout << "Computaciones iniciales" << std::endl;
+        //std::cout << "Computaciones iniciales" << std::endl;
         ComputeImageBounds(imLeft);
 
         mfGridElementWidthInv=static_cast<float>(FRAME_GRID_COLS)/(mnMaxX-mnMinX);
@@ -308,19 +315,19 @@ Frame::Frame(const int n_img, const cv::Mat &imLeft, const cv::Mat &imRight, con
         mbInitialComputations=false;
     }
 
-    std::cout << "Calculo de mb" << std::endl;
+    //std::cout << "Calculo de mb" << std::endl;
 
     mb = mbf/fx;
 
     if(pPrevF)
     {   
-        std::cout << "Check Prev Frame" << std::endl;
+        //std::cout << "Check Prev Frame" << std::endl;
         if(pPrevF->HasVelocity())
             SetVelocity(pPrevF->GetVelocity());
     }
     else
     {
-        std::cout << "Zeros" << std::endl;
+        //std::cout << "Zeros" << std::endl;
         mVw.setZero();
     }
 
@@ -334,7 +341,7 @@ Frame::Frame(const int n_img, const cv::Mat &imLeft, const cv::Mat &imRight, con
     mvStereo3Dpoints = vector<Eigen::Vector3f>(0);
     monoLeft = -1;
     monoRight = -1;
-    std::cout << "FeaturesToGrid" << std::endl;
+    //std::cout << "FeaturesToGrid" << std::endl;
     AssignFeaturesToGrid();
     #ifdef REGISTER_TIMES
         #ifdef REGISTER_SECTION_LATENCY
@@ -343,7 +350,7 @@ Frame::Frame(const int n_img, const cv::Mat &imLeft, const cv::Mat &imRight, con
         mTimeStereoMatch = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndStereoMatches - time_StartStereoMatches).count();
         #endif
     #endif
-    std::cout << "Constructor finito" << std::endl;
+    //std::cout << "Constructor finito" << std::endl;
 }
 
 
