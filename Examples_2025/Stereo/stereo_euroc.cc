@@ -428,11 +428,11 @@ int main(int argc, char **argv)
                         std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
                     #endif
                 #endif
-                std::cout << "Asignamos el frame " << n_image << std::endl;
+                //std::cout << "Asignamos el frame " << n_image << std::endl;
                 frames[n_image % roulette_size] = SLAM.GenerateFrame(n_image, imgsLeft[n_image % roulette_size], 
                     imgsRight[n_image % roulette_size], extractorsLeft[n_image % roulette_size], extractorsRight[n_image % roulette_size],
                     vTimestampsCam[seq][n_image], vector<ORB_SLAM3::IMU::Point>(), vstrImageLeft[seq][n_image]);
-                std::cout << "Hemos asignado el frame " << n_image << " a la posición " << n_image % roulette_size << std::endl;
+                //std::cout << "Hemos asignado el frame " << n_image << " a la posición " << n_image % roulette_size << std::endl;
                 
                 #ifdef MEDIR_TIEMPO_SECCIONES
                     #ifdef REGISTER_SECTION_LATENCY
