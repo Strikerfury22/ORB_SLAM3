@@ -234,7 +234,7 @@ int main(int argc, char **argv)
 {  
     auto t = std::chrono::high_resolution_clock::now();
     warmupTBB();
-
+    std::cout << "ESTA ES LA VERSION PIPELINE DE JORGE" << std::endl;
     std::cout << "START\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count() << std::endl;
     
     if(argc < 7)
