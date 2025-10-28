@@ -289,6 +289,7 @@ private:
 
 public: //At this point who cares?
     Settings* settings_;
+    tbb::task_group threadHandler; //Dedicado a lanzar LocalMapping y LoopClosing.
 };
 
 }// namespace ORB_SLAM
