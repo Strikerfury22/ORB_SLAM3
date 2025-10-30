@@ -281,6 +281,8 @@ private:
 
 public: //At this point who cares?
     Settings* settings_;
+    tbb::task_group threadHandler; //Dedicado a lanzar LocalMapping y LoopClosing.
+    tbb::task_arena arena; //Dedicado a incrementar la prioridad de los hilos lanzados.
 };
 
 }// namespace ORB_SLAM
