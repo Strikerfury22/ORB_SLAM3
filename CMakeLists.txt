@@ -195,9 +195,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples_2025/Stereo)
 #         Examples/Stereo/stereo_euroc.cc)
 # target_link_libraries(stereo_euroc ${PROJECT_NAME})
 
-add_executable(stereo_euroc_graph_tg
+add_executable(stereo_euroc_graph_tgp
         Examples_2025/Stereo/stereo_euroc.cc)
-target_link_libraries(stereo_euroc_graph_tg ${PROJECT_NAME})
+target_link_libraries(stereo_euroc_graph_tgp ${PROJECT_NAME})
 
 # add_executable(stereo_tum_vi
 #         Examples/Stereo/stereo_tum_vi.cc)
